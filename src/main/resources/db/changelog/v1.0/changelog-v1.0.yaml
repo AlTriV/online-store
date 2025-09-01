@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: "init_schema"
+      author: "avtry"
+      comment: "Init online store db schema"
+      changes:
+        - sqlFile:
+            path: init_store_schema.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: init_store_schema_rollback.sql
+            relativeToChangelogFile: true

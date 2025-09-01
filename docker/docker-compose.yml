@@ -1,0 +1,12 @@
+services:
+
+  store_db:
+    image: postgres:17.5
+    environment:
+      POSTGRES_DB: store_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"

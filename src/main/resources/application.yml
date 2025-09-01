@@ -1,3 +1,12 @@
 spring:
   application:
     name: "online-store"
+
+  datasource:
+    url: jdbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    default-schema: ${DB_SCHEMA}
+    enabled: true
