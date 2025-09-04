@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Страница админа. Все товары</title>
+</head>
+
+<body>
+<form method="GET" action="/store/admin/items">
+    <button style="float:right;">ДОБАВИТЬ ТОВАР</button>
+</form>
+<table style="width:70%;margin-left:auto;margin-right:auto;">
+    <tr>
+        <td>
+            <form>
+                <p>
+                    <label for="pageSize">Число товаров: </label>
+                    <select id="pageSize" name="pageSize" onchange="this.form.submit()">
+                        <option value="5" th:selected="${paging.pageSize()==5}">5</option>
+                        <option value="10" th:selected="${paging.pageSize()==10}">10</option>
+                        <option value="20" th:selected="${paging.pageSize()==20}">20</option>
+                        <option value="50" th:selected="${paging.pageSize()==50}">50</option>
+                        <option value="100" th:selected="${paging.pageSize()==100}">100</option>
+                    </select>
+                </p>
+                <p>
+                    <button th:if="${paging.hasPrevious()}" name="pageNumber" th:value="${paging.pageNumber()-1}">&lt;</button>
+                    <span th:text="${'Страница: '+paging.pageNumber()}"></span>
+                    <button th:if="${paging.hasNext()}" name="pageNumber" th:value="${paging.pageNumber()+1}">&gt;</button>
+                </p>
+            </form>
+        </td>
+    </tr>
+    <tr th:each="itemsRow : ${items}">
+        <td th:each="item : ${itemsRow}">
+            <table>
+                <tr>
+                    <td>
+                        <img width="300" height="300" th:src="${'http://localhost:8080/store/items/'+item.getId()+'/image'}">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <b th:text="${item.getTitle()}"></b>
+                    </td>
+                    <td>
+                        <b th:text="${item.getPrice()}+' руб.'"></b>
+                    </td>
+                </tr>
+                <tr>
+                    <td th:text="${item.getDescription()}"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <form th:action="${'/store/admin/items/'+item.getId()+'/delete'}" method="post">
+                            <button style="float:right;">УДАЛИТЬ</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Страница админа. Добавление товара</title>
+</head>
+
+<body>
+<a href="/store/admin" style="float:right;">
+    <b>НА СТРАНИЦУ АДМИНА &cudarrr;</b>
+</a>
+<form method="POST" action="/store/admin/items" enctype="multipart/form-data">
+    <table style="width:50%;margin-left:auto;margin-right:auto;">
+        <tr>
+            <td>
+                <h3>Название товара</h3>
+                <textarea rows="2" style="width: 100%;" name="title"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Описание товара</h3>
+                <textarea rows="5" style="width: 100%;" name="description"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Цена товара</h3>
+                <textarea rows="2" style="width: 100%;" name="price"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Изображение товара</h3>
+                <input type="file" name="image">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button style="float:right;">Сохранить</button>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>

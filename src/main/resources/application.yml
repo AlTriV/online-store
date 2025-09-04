@@ -10,3 +10,15 @@ spring:
   liquibase:
     default-schema: ${DB_SCHEMA}
     enabled: true
+
+  thymeleaf:
+    enabled: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /store
+
+store:
+  view:
+    itemsInRow: 3
