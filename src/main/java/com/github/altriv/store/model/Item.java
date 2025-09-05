@@ -20,4 +20,12 @@ public class Item {
     private String description;
     private int price;
     private int count;
+
+    public void increaseCount() {
+        this.count++;
+    }
+
+    public void decreaseCount() {
+        this.count--;
+    }
 }
