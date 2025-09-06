@@ -1,5 +1,6 @@
 package com.github.altriv.store.controller;
 
+import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.service.ItemService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class AdminController {
                            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
                            Model model) {
         log.info("ADMIN. Request to get items with params: pageNumber = {}, pageSize = {}", pageNumber, pageSize);
-        ItemsPage itemsPage = itemService.findItems(pageNumber, pageSize);
+        ItemsPage itemsPage = itemService.getItemsPage("", ItemSorting.NO, pageNumber, pageSize);
 
         model.addAttribute("paging", itemsPage.getPageInfo());
         model.addAttribute("items", itemsPage.getItemRows(itemsInRow));

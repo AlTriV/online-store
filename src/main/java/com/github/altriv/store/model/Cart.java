@@ -15,15 +15,17 @@ public class Cart {
 
     public Cart(List<Item> items) {
         this.items = new HashMap<>();
-        items.forEach(i -> this.items.put(i.getId(), i));
+        items.forEach(item -> this.items.put(item.getId(), item));
     }
 
     public void addItem(Item item) {
         long itemId = item.getId();
         if (this.items.containsKey(itemId)) {
             this.items.get(itemId).increaseCount();
+        } else {
+            item.setCount(1);
+            this.items.put(itemId, item);
         }
-        this.items.put(itemId, item);
     }
 
     public List<Item> getItems() {

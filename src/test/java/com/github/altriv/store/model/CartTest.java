@@ -36,7 +36,7 @@ class CartTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
     void shouldIncreateCountOfExistingItem(int iterations) {
-        Item item = new Item(1L, "title", "description", 1000, 0);
+        Item item = new Item(1L, "title", "description", 1000, 1);
 
         Cart cart = new Cart(List.of(item));
 
@@ -46,7 +46,7 @@ class CartTest {
         assertNotNull(items);
         assertEquals(1, items.size());
         assertTrue(items.contains(item));
-        assertEquals(iterations, items.getFirst().getCount());
+        assertEquals(iterations + 1, items.getFirst().getCount());
     }
 
     @Test

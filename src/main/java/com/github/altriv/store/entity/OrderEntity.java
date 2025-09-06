@@ -1,9 +1,9 @@
 package com.github.altriv.store.entity;
 
-import jakarta.persistence.Basic;
-import jakarta.persistence.Column;
+import com.github.altriv.store.mapper.ItemListAttributeConverter;
+import com.github.altriv.store.model.Item;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,8 +16,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @Entity
-@Table(name = "items")
+@Table(name = "orders")
 @Getter
 @Setter
 @Builder
@@ -25,21 +27,14 @@ import lombok.ToString;
 @AllArgsConstructor
 @EqualsAndHashCode
 @ToString
-public class ItemEntity {
+public class OrderEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
+    private boolean paid;
 
-    private String description;
-
-    private Integer price;
-
-    @Column(columnDefinition = "BYTEA")
-    @Basic(fetch = FetchType.LAZY)
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
-    private byte[] image;
+    @Convert(converter = ItemListAttributeConverter.class)
+    private List<Item> items;
 }

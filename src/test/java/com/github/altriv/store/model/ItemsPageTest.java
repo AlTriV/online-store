@@ -23,7 +23,7 @@ class ItemsPageTest {
         IntStream.range(0, numberOfItems).forEach(i -> items.add(mock(Item.class)));
 
         int expectedNumberOfRows = Math.ceilDiv(numberOfItems, numberOfItemsInRow);
-        ;
+
         int expectedNumberOfItemsInLastRow =
                 numberOfItems % numberOfItemsInRow == 0 ?
                         numberOfItemsInRow : numberOfItems % numberOfItemsInRow;
@@ -35,9 +35,7 @@ class ItemsPageTest {
         assertNotNull(itemRows);
         assertEquals(expectedNumberOfRows, itemRows.size());
         IntStream.range(0, expectedNumberOfRows - 1)
-                .forEach(i -> {
-                    assertEquals(numberOfItemsInRow, itemRows.get(i).size());
-                });
+                .forEach(i -> assertEquals(numberOfItemsInRow, itemRows.get(i).size()));
         assertEquals(expectedNumberOfItemsInLastRow, itemRows.get(expectedNumberOfRows - 1).size());
     }
 
