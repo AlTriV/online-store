@@ -6,10 +6,10 @@
 </head>
 
 <body>
-    <a href="/orders" style="float:right;">
+    <a href="/store/orders" style="float:right;">
         <b>ЗАКАЗЫ &cudarrr;</b>
     </a>
-    <a href="/cart/items" style="float:right;">
+    <a href="/store/cart/items" style="float:right;">
         <b>КОРЗИНА &cudarrr;</b>
     </a>
     <table style="width:70%;margin-left:auto;margin-right:auto;">
@@ -52,7 +52,7 @@
                 <table>
                     <tr>
                         <td>
-                            <a th:href="${'/items/'+item.getId()}">
+                            <a th:href="${'/store/items/'+item.getId()}">
                                 <img width="300" height="300" th:src="${'http://localhost:8080/store/items/'+item.getId()+'/image'}">
                             </a>
                         </td>
@@ -70,7 +70,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <form th:action="${'/main/items/'+item.getId()}" method="post">
+                            <form th:action="${'/store/main/items/'+item.getId()}" method="post">
                                 <button name="action" value="minus">-</button>
                                 <span th:text="${item.getCount()}"></span>
                                 <button name="action" value="plus">+</button>

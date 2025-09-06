@@ -6,10 +6,10 @@
 </head>
 
 <body>
-<a href="/orders" style="float:right;">
+<a href="/store/orders" style="float:right;">
     <b>ЗАКАЗЫ &cudarrr;</b>
 </a>
-<a href="/main/items" style="float:right;">
+<a href="/store/main/items" style="float:right;">
     <b>ГЛАВНАЯ &cudarrr;</b>
 </a>
 <table style="width:70%;margin-left:auto;margin-right:auto;">
@@ -18,7 +18,7 @@
             <table>
                 <tr>
                     <td>
-                        <img width="300" height="300" th:src="${'http://localhost:8080/'+item.getImgPath()}">
+                        <img width="300" height="300" th:src="${'http://localhost:8080/store/items/'+item.getId()+'/image'}">
                     </td>
                 </tr>
                 <tr>
@@ -32,7 +32,7 @@
                 <tr><td th:text="${item.getDescription()}"></td></tr>
                 <tr>
                     <td>
-                        <form th:action="${'/cart/items/'+item.getId()}" method="post">
+                        <form th:action="${'/store/cart/items/'+item.getId()}" method="post">
                             <button name="action" value="minus">-</button>
                             <span th:text="${item.getCount()}"></span>
                             <button name="action" value="plus">+</button>
@@ -50,7 +50,7 @@
     </tr>
     <tr>
         <td style="text-align:right">
-            <form action="/buy" method="post" th:if="${!empty}">
+            <form action="/store/buy" method="post" th:if="${!empty}">
                 <button>Купить</button>
             </form>
         </td>

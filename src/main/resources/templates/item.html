@@ -6,18 +6,18 @@
 </head>
 
 <body>
-    <a href="/orders" style="float:right;">
+    <a href="/store/orders" style="float:right;">
         <b>ЗАКАЗЫ &cudarrr;</b>
     </a>
-    <a href="/cart/items" style="float:right;">
+    <a href="/store/cart/items" style="float:right;">
         <b>КОРЗИНА &cudarrr;</b>
     </a>
-    <a href="/main/items" style="float:right;">
+    <a href="/store/main/items" style="float:right;">
         <b>ГЛАВНАЯ &cudarrr;</b>
     </a>
     <div style="width:70%;margin-left:auto;margin-right:auto;">
         <p>
-            <img width="300" height="300" th:src="${'http://localhost:8080/'+item.getImgPath()}">
+            <img width="300" height="300" th:src="${'http://localhost:8080/store/items/'+item.getId()+'/image'}">
         </p>
         <p>
             <b th:text="${item.getTitle()}"></b>
@@ -26,7 +26,7 @@
         <p>
             <span th:text="${item.getDescription()}"></span>
         </p>
-        <form th:action="${'/items/'+item.getId()}" method="post">
+        <form th:action="${'/store/items/'+item.getId()}" method="post">
             <button name="action" value="minus">-</button>
             <span th:text="${item.getCount()}"></span>
             <button name="action" value="plus">+</button>
