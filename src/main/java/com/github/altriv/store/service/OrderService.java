@@ -5,6 +5,7 @@ import lombok.NonNull;
 
 public interface OrderService {
 
+    @NonNull
     Cart getNotPaidOrderAsCart();
 
     void saveCartAsNotPaidOrder(@NonNull Cart cart);

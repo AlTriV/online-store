@@ -61,6 +61,18 @@ public class Cart {
         }
     }
 
+    public int getTotalPrice() {
+        int totalPrice = 0;
+        for (Item item : items.values()) {
+            totalPrice = totalPrice + item.getPrice() * item.getCount();
+        }
+        return totalPrice;
+    }
+
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+
     public static Cart empty() {
         return new Cart();
     }

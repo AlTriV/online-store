@@ -15,6 +15,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
+    @NonNull
     @Override
     public Cart getNotPaidOrderAsCart() {
         Optional<OrderEntity> notPaidOrder = orderRepository.findNotPaidOrder();

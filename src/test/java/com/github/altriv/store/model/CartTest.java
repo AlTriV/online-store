@@ -177,4 +177,26 @@ class CartTest {
         assertTrue(items.isEmpty());
     }
 
+    @Test
+    void shouldReturnTotalPrice() {
+        Cart cart = Cart.empty();
+        int price1 = 1000;
+        int price2 = 2000;
+        Item item = new Item(1L, "title", "description", price1, 0);
+        Item item2 = new Item(2L, "title2", "description2", price2, 0);
+        cart.addItem(item);
+        cart.addItem(item);
+        cart.addItem(item2);
+        int expectedPrice = 2 * price1 + price2;
+
+        assertEquals(expectedPrice, cart.getTotalPrice());
+    }
+
+    @Test
+    void shouldReturnZeroIfCartIsEmpty() {
+        Cart cart = Cart.empty();
+
+        assertEquals(0, cart.getTotalPrice());
+    }
+
 }

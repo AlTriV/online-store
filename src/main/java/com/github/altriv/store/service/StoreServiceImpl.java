@@ -38,6 +38,12 @@ public class StoreServiceImpl implements StoreService {
         });
     }
 
+    @NonNull
+    @Override
+    public Cart getCart() {
+        return orderService.getNotPaidOrderAsCart();
+    }
+
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {
         ofNullable(cart.getItem(item.getId()))
                 .map(Item::getCount)
