@@ -30,6 +30,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.liquibase:liquibase-core'
     implementation 'org.apache.commons:commons-lang3:3.18.0'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.10.3'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'

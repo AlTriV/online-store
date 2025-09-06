@@ -1,8 +1,8 @@
 package com.github.altriv.store.entity;
 
-import com.github.altriv.store.mapper.ItemListAttributeConverter;
 import com.github.altriv.store.model.Item;
-import jakarta.persistence.Convert;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +15,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.util.List;
 
@@ -35,6 +38,8 @@ public class OrderEntity {
 
     private boolean paid;
 
-    @Convert(converter = ItemListAttributeConverter.class)
+    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "items", columnDefinition = "jsonb")
     private List<Item> items;
 }
