@@ -87,4 +87,94 @@ class CartTest {
         assertEquals(item, found);
     }
 
+    @Test
+    void shouldRemoveOneItem() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+
+        cart.addItem(item);
+        cart.addItem(item);
+
+        cart.removeOneUnit(1L);
+
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertEquals(1, items.size());
+        Item itemInCart = items.getFirst();
+        assertEquals(1, itemInCart.getCount());
+    }
+
+    @Test
+    void shouldRemoveItemAtAll() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+        cart.addItem(item);
+        cart.addItem(item);
+
+        cart.removeOneUnit(1L);
+        cart.removeOneUnit(1L);
+
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertTrue(items.isEmpty());
+    }
+
+    @Test
+    void shouldRemoveAllItems() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+        cart.addItem(item);
+        cart.addItem(item);
+
+        cart.removeAllUnits(1L);
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertTrue(items.isEmpty());
+    }
+
+    @Test
+    void shouldAddOneItem() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+        cart.addItem(item);
+
+        cart.changeItemCountInCart(item, ItemAction.PLUS);
+
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertEquals(1, items.size());
+        Item itemInCart = items.getFirst();
+        assertEquals(2, itemInCart.getCount());
+    }
+
+    @Test
+    void shouldDeleteOneItem() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+        cart.addItem(item);
+        cart.addItem(item);
+
+        cart.changeItemCountInCart(item, ItemAction.MINUS);
+
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertEquals(1, items.size());
+        Item itemInCart = items.getFirst();
+        assertEquals(1, itemInCart.getCount());
+    }
+
+    @Test
+    void shouldDeleteItemFromCart() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 1000, 0);
+        cart.addItem(item);
+        cart.addItem(item);
+
+        cart.changeItemCountInCart(item, ItemAction.DELETE);
+
+        List<Item> items = cart.getItems();
+        assertNotNull(items);
+        assertTrue(items.isEmpty());
+    }
+
 }
