@@ -50,7 +50,7 @@ public class MainController {
     @PostMapping("/main/items/{itemId}")
     public String changeItemCount(@PathVariable("itemId") long itemId,
                                   @RequestParam(value = "action") ItemAction action) {
-        log.info("Request to change item count in car from main page. Params: itemId= {}, action= {}", itemId, action);
+        log.info("Request to change item count in cart from main page. Params: itemId= {}, action= {}", itemId, action);
         storeService.changeItemCountInCart(itemId, action);
         return "redirect:/main/items";
     }
