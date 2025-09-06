@@ -1,6 +1,7 @@
 package com.github.altriv.store.controller;
 
 import com.github.altriv.store.model.Item;
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.model.PageInfo;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,8 +21,10 @@ import java.util.List;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MainController.class)
@@ -108,4 +112,37 @@ class MainControllerTest {
             verify(storeService, times(1)).searchItems(search, itemSorting, pageNumber, pageSize);
         }
     }
+
+    @Nested
+    class ChangeItemCountTest {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
+        void shouldPerformActionAndReturnToMainPage(String action) throws Exception {
+            long id = 1L;
+
+            String url = "/main/items/" + id;
+
+            mockMvc.perform(multipart(url).param("action", action))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/main/items"));
+            verify(storeService, times(1)).changeItemCountInCart(id, ItemAction.valueOf(action));
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+                "'plus', 1",
+                "'minus', 1",
+                "'Delete', 1",
+                "'DELETE', id"
+        })
+        void shouldReturnClientError(String action, String id) throws Exception {
+            String url = "/main/items/" + id;
+
+            mockMvc.perform(multipart(url).param("action", action))
+                    .andExpect(status().is4xxClientError());
+            verifyNoInteractions(storeService);
+        }
+    }
+
 }

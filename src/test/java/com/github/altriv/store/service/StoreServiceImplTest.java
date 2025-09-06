@@ -2,6 +2,7 @@ package com.github.altriv.store.service;
 
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.model.PageInfo;
@@ -10,15 +11,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,6 +81,42 @@ class StoreServiceImplTest {
             assertTrue(resultItemsPage.getItems().containsAll(List.of(cartItem1, cartItem2, item3, item4)));
             verify(itemService, times(1)).getItemsPage(search, sort, pageNumber, pageSize);
             verify(orderService, times(1)).getNotPaidOrderAsCart();
+        }
+    }
+
+    @Nested
+    class ChangeItemCountInCartTest {
+
+        @ParameterizedTest
+        @EnumSource(ItemAction.class)
+        void shouldDoNothingIfItemNotFound(ItemAction action) {
+            long itemId = 1L;
+            when(itemService.getItem(itemId)).thenReturn(Optional.empty());
+
+            storeService.changeItemCountInCart(itemId, action);
+
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(itemService, times(1)).getItem(itemId);
+            verifyNoMoreInteractions(itemService);
+            verifyNoMoreInteractions(orderService);
+        }
+
+        @ParameterizedTest
+        @EnumSource(ItemAction.class)
+        void shouldCallItemCountChangeIfItemFound(ItemAction action) {
+            long itemId = 1L;
+            Cart cart = mock(Cart.class);
+            Item item = mock(Item.class);
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(cart);
+            when(itemService.getItem(itemId)).thenReturn(Optional.of(item));
+
+            storeService.changeItemCountInCart(itemId, action);
+
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(itemService, times(1)).getItem(itemId);
+            verify(cart, times(1)).changeItemCountInCart(item, action);
+            verify(orderService, times(1)).saveCartAsNotPaidOrder(cart);
+            verifyNoMoreInteractions(itemService);
         }
     }
 }

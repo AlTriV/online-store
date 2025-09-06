@@ -3,6 +3,7 @@ package com.github.altriv.store.service;
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.repository.OrderRepository;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,5 +21,13 @@ public class OrderServiceImpl implements OrderService {
         return notPaidOrder
                 .map(orderEntity -> new Cart(orderEntity.getItems()))
                 .orElse(Cart.empty());
+    }
+
+    @Override
+    public void saveCartAsNotPaidOrder(@NonNull Cart cart) {
+        Optional<OrderEntity> notPaidOrder = orderRepository.findNotPaidOrder();
+        OrderEntity orderEntity = notPaidOrder.orElseGet(OrderEntity::new);
+        orderEntity.setItems(cart.getItems());
+        orderRepository.save(orderEntity);
     }
 }

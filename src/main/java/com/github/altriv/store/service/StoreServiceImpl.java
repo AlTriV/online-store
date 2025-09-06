@@ -2,6 +2,7 @@ package com.github.altriv.store.service;
 
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import lombok.NonNull;
@@ -26,6 +27,15 @@ public class StoreServiceImpl implements StoreService {
         Cart cart = orderService.getNotPaidOrderAsCart();
         itemsPage.getItems().forEach(item -> mergeCountFromCartToItem(cart, item));
         return itemsPage;
+    }
+
+    @Override
+    public void changeItemCountInCart(long itemId, @NonNull ItemAction action) {
+        Cart cart = orderService.getNotPaidOrderAsCart();
+        itemService.getItem(itemId).ifPresent(item -> {
+            cart.changeItemCountInCart(item, action);
+            orderService.saveCartAsNotPaidOrder(cart);
+        });
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {

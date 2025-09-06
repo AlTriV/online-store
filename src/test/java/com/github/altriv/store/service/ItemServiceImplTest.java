@@ -8,6 +8,7 @@ import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.repository.ItemRepository;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -70,7 +72,7 @@ class ItemServiceImplTest {
             Item expectedItem2 = new Item(itemId2, itemTitle2, description2, price2, 0);
             ItemEntity itemEntity2 = new ItemEntity(itemId2, itemTitle2, description2, price2, null);
 
-            PageInfo expectedPageInfo = new PageInfo(page, pageSize, false);
+            PageInfo expectedPageInfo = new PageInfo(page + 1, pageSize, false);
 
             when(itemRepository.findAll(eq(pageRequest)))
                     .thenReturn(new PageImpl<>(List.of(itemEntity1, itemEntity2), pageRequest, 2));
@@ -115,7 +117,7 @@ class ItemServiceImplTest {
             Item expectedItem2 = new Item(itemId2, itemTitle2, description2, price2, 0);
             ItemEntity itemEntity2 = new ItemEntity(itemId2, itemTitle2, description2, price2, null);
 
-            PageInfo expectedPageInfo = new PageInfo(page, pageSize, false);
+            PageInfo expectedPageInfo = new PageInfo(page + 1, pageSize, false);
 
             when(itemRepository.searchItemsWithTitleOrDescription(eq(search.toLowerCase()), eq(pageRequest)))
                     .thenReturn(new PageImpl<>(List.of(itemEntity1, itemEntity2), pageRequest, 2));
@@ -141,6 +143,65 @@ class ItemServiceImplTest {
                 case PRICE -> Sort.by(Sort.Direction.ASC, "price");
                 case NO -> Sort.unsorted();
             };
+        }
+    }
+
+    @Nested
+    class GetItem {
+
+        @Test
+        void shouldReturnEmptyWhenNoItemFound() {
+            long itemId = 1L;
+            when(itemRepository.findById(itemId)).thenReturn(Optional.empty());
+
+            Optional<Item> item = itemService.getItem(itemId);
+
+            assertFalse(item.isPresent());
+            verify(itemRepository, times(1)).findById(itemId);
+        }
+
+        @Test
+        void shouldReturnItemWhenItemFound() {
+            long itemId = 1L;
+            String itemTitle = "Item 1";
+            String itemDescription = "Description 1";
+            int itemPrice = 2000;
+            ItemEntity itemEntity = new ItemEntity(itemId, itemTitle, itemDescription, itemPrice, null);
+            Item expecteItem = new Item(itemId, itemTitle, itemDescription, itemPrice, 0);
+            when(itemRepository.findById(itemId)).thenReturn(Optional.of(itemEntity));
+
+            Optional<Item> item = itemService.getItem(itemId);
+
+            assertTrue(item.isPresent());
+            assertEquals(expecteItem, item.get());
+            verify(itemRepository, times(1)).findById(itemId);
+        }
+    }
+
+    @Nested
+    class GetItemImage {
+
+        @Test
+        void shouldReturnEmptyWhenNoItemFound() {
+            long itemId = 1L;
+            when(itemRepository.getItemImage(itemId)).thenReturn(Optional.empty());
+
+            byte[] itemImage = itemService.getItemImage(itemId);
+
+            assertArrayEquals(new byte[0], itemImage);
+            verify(itemRepository, times(1)).getItemImage(itemId);
+        }
+
+        @Test
+        void shouldReturnItemImageWhenItemFound() {
+            long itemId = 1L;
+            byte[] image = "dummy image content".getBytes();
+            when(itemRepository.getItemImage(itemId)).thenReturn(Optional.of(image));
+
+            byte[] itemImage = itemService.getItemImage(itemId);
+
+            assertArrayEquals(image, itemImage);
+            verify(itemRepository, times(1)).getItemImage(itemId);
         }
     }
 }

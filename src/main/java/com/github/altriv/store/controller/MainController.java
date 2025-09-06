@@ -1,5 +1,6 @@
 package com.github.altriv.store.controller;
 
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.service.StoreService;
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -42,5 +45,13 @@ public class MainController {
         model.addAttribute("items", itemsPage.getItemRows(itemsInRow));
 
         return "main";
+    }
+
+    @PostMapping("/main/items/{itemId}")
+    public String changeItemCount(@PathVariable("itemId") long itemId,
+                                  @RequestParam(value = "action") ItemAction action) {
+        log.info("Request to change item count in car from main page. Params: itemId= {}, action= {}", itemId, action);
+        storeService.changeItemCountInCart(itemId, action);
+        return "redirect:/main/items";
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,8 +43,18 @@ public class ItemServiceImpl implements ItemService {
         List<Item> items = itemEntityPage.stream()
                 .map(itemMapper::toItem)
                 .toList();
-        PageInfo pageInfo = new PageInfo(page, pageSize, itemEntityPage.hasNext());
+        PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntityPage.hasNext());
         return new ItemsPage(items, pageInfo);
+    }
+
+    @Override
+    public Optional<Item> getItem(long itemId) {
+        return itemRepository.findById(itemId).map(itemMapper::toItem);
+    }
+
+    @Override
+    public byte[] getItemImage(long itemId) {
+        return itemRepository.getItemImage(itemId).orElse(new byte[0]);
     }
 
     @Override
@@ -60,11 +71,6 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public void deleteItem(long itemId) {
         itemRepository.deleteById(itemId);
-    }
-
-    @Override
-    public byte[] getItemImage(long itemId) {
-        return itemRepository.getItemImage(itemId).orElse(new byte[0]);
     }
 
     private Sort convertSort(@NonNull ItemSorting sorting) {

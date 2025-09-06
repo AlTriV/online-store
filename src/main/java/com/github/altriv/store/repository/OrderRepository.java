@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
-    @Query("select order from OrderEntity order where order.paid = false")
+    @Query("select o from OrderEntity o where o.paid = false")
     Optional<OrderEntity> findNotPaidOrder();
 }
