@@ -9,6 +9,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 import static java.util.Optional.ofNullable;
 
 @Service
@@ -42,6 +44,15 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public Cart getCart() {
         return orderService.getNotPaidOrderAsCart();
+    }
+
+    @Override
+    public Optional<Item> getItemWithCartCount(long itemId) {
+        Cart cart = orderService.getNotPaidOrderAsCart();
+        return itemService.getItem(itemId).map(item -> {
+            mergeCountFromCartToItem(cart, item);
+            return item;
+        });
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {

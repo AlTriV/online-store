@@ -119,4 +119,41 @@ class StoreServiceImplTest {
             verifyNoMoreInteractions(itemService);
         }
     }
+
+    @Nested
+    class GetItemWithCartCount {
+
+        @Test
+        void shouldReturnEmptyIfItemNotFound() {
+            long itemId = 1L;
+            Cart cart = Cart.empty();
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(cart);
+            when(itemService.getItem(itemId)).thenReturn(Optional.empty());
+
+            Optional<Item> item = storeService.getItemWithCartCount(itemId);
+
+            assertFalse(item.isPresent());
+        }
+
+        @Test
+        void shouldReturnItemWithCartCount() {
+            long itemId = 1L;
+            Item item = new Item(1L, "item1", "item1 description", 1200, 0);
+            Item itemInCart = new Item(1L, "item1", "item1 description", 1200, 5);
+            Cart cart = new Cart(List.of(itemInCart));
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(cart);
+            when(itemService.getItem(itemId)).thenReturn(Optional.of(item));
+
+            Optional<Item> resultItem = storeService.getItemWithCartCount(itemId);
+
+            assertTrue(resultItem.isPresent());
+            assertEquals(item.getId(), resultItem.get().getId());
+            assertEquals(item.getTitle(), resultItem.get().getTitle());
+            assertEquals(item.getDescription(), resultItem.get().getDescription());
+            assertEquals(item.getPrice(), resultItem.get().getPrice());
+            assertEquals(itemInCart.getCount(), resultItem.get().getCount());
+        }
+    }
 }

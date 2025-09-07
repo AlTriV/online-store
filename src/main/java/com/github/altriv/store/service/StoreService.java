@@ -1,10 +1,13 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.store.model.Cart;
+import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import lombok.NonNull;
+
+import java.util.Optional;
 
 public interface StoreService {
 
@@ -14,4 +17,6 @@ public interface StoreService {
 
     @NonNull
     Cart getCart();
+
+    Optional<Item> getItemWithCartCount(long itemId);
 }
