@@ -7,6 +7,7 @@ import com.github.altriv.store.repository.OrderRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void saveCartAsNotPaidOrder(@NonNull Cart cart) {
         Optional<OrderEntity> notPaidOrder = orderRepository.findNotPaidOrder();
         OrderEntity orderEntity = notPaidOrder.orElseGet(OrderEntity::new);
@@ -48,6 +50,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Optional<Order> buyItemsInCart() {
         Optional<OrderEntity> notPaidOrder = orderRepository.findNotPaidOrder();
         notPaidOrder.ifPresent(orderEntity -> {

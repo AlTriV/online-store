@@ -9,6 +9,7 @@ import com.github.altriv.store.model.Order;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class StoreServiceImpl implements StoreService {
     private final OrderService orderService;
 
     @Override
+    @Transactional
     public ItemsPage searchItems(@NonNull String search,
                                  @NonNull ItemSorting sort,
                                  int pageNumber,
@@ -33,6 +35,7 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
+    @Transactional
     public void changeItemCountInCart(long itemId, @NonNull ItemAction action) {
         Cart cart = orderService.getNotPaidOrderAsCart();
         itemService.getItem(itemId).ifPresent(item -> {
@@ -48,6 +51,7 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
+    @Transactional
     public Optional<Item> getItemWithCartCount(long itemId) {
         Cart cart = orderService.getNotPaidOrderAsCart();
         return itemService.getItem(itemId).map(item -> {
