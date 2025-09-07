@@ -8,7 +8,6 @@ spring:
     password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
   liquibase:
-    default-schema: ${DB_SCHEMA}
     enabled: true
 
   thymeleaf:
