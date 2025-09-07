@@ -1,7 +1,6 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.store.entity.ItemEntity;
-import com.github.altriv.store.mapper.ItemMapperImpl;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
@@ -9,14 +8,15 @@ import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.repository.ItemRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,13 +28,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = {ItemServiceImpl.class, ItemMapperImpl.class})
+@ExtendWith(MockitoExtension.class)
 class ItemServiceImplTest {
 
-    @MockitoBean
+    @Mock
     private ItemRepository itemRepository;
 
-    @Autowired
+    @InjectMocks
     private ItemServiceImpl itemService;
 
     @Nested

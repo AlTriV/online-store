@@ -1,7 +1,6 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.store.entity.ItemEntity;
-import com.github.altriv.store.mapper.ItemMapper;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
@@ -23,7 +22,6 @@ import java.util.Optional;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
-    private final ItemMapper itemMapper;
 
     @Override
     public ItemsPage getItemsPage(@NonNull String search,
@@ -41,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         List<Item> items = itemEntityPage.stream()
-                .map(itemMapper::toItem)
+                .map(this::toItem)
                 .toList();
         PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntityPage.hasNext());
         return new ItemsPage(items, pageInfo);
@@ -49,7 +47,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Optional<Item> getItem(long itemId) {
-        return itemRepository.findById(itemId).map(itemMapper::toItem);
+        return itemRepository.findById(itemId).map(this::toItem);
     }
 
     @Override
@@ -79,5 +77,15 @@ public class ItemServiceImpl implements ItemService {
             case PRICE -> Sort.by(Sort.Direction.ASC, "price");
             case NO -> Sort.unsorted();
         };
+    }
+
+    private Item toItem(@NonNull ItemEntity itemEntity) {
+        return Item.builder()
+                .id(itemEntity.getId())
+                .title(itemEntity.getTitle())
+                .description(itemEntity.getDescription())
+                .price(itemEntity.getPrice())
+                .count(0)
+                .build();
     }
 }
