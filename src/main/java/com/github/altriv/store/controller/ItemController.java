@@ -1,6 +1,7 @@
 package com.github.altriv.store.controller;
 
 import com.github.altriv.store.model.Item;
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.service.ItemService;
 import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Optional;
@@ -38,5 +41,13 @@ public class ItemController {
     @GetMapping("/{itemId}/image")
     public @ResponseBody byte[] getItemImage(@PathVariable("itemId") long itemId) {
         return itemService.getItemImage(itemId);
+    }
+
+    @PostMapping("/{itemId}")
+    public String changeItemCount(@PathVariable("itemId") long itemId,
+                                  @RequestParam(value = "action") ItemAction action) {
+        log.info("Request to change item count in cart from item page. Params: itemId= {}, action= {}", itemId, action);
+        storeService.changeItemCountInCart(itemId, action);
+        return "redirect:/items/" + itemId;
     }
 }

@@ -1,11 +1,13 @@
 package com.github.altriv.store.controller;
 
 import com.github.altriv.store.model.Item;
+import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.service.ItemService;
 import com.github.altriv.store.service.StoreService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -16,8 +18,10 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -67,6 +71,38 @@ class ItemControllerTest {
                     .andExpect(model().attributeExists("item"))
                     .andExpect(model().attribute("item", item));
             verify(storeService, times(1)).getItemWithCartCount(itemId);
+        }
+    }
+
+    @Nested
+    class ChangeItemCountTest {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
+        void shouldPerformActionAndReturnToMainPage(String action) throws Exception {
+            long id = 1L;
+
+            String url = "/items/" + id;
+
+            mockMvc.perform(multipart(url).param("action", action))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl(url));
+            verify(storeService, times(1)).changeItemCountInCart(id, ItemAction.valueOf(action));
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+                "'plus', 1",
+                "'minus', 1",
+                "'Delete', 1",
+                "'DELETE', id"
+        })
+        void shouldReturnClientError(String action, String id) throws Exception {
+            String url = "/items/" + id;
+
+            mockMvc.perform(multipart(url).param("action", action))
+                    .andExpect(status().is4xxClientError());
+            verifyNoInteractions(storeService);
         }
     }
 
