@@ -4,6 +4,7 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
+import com.github.altriv.store.model.Order;
 import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.service.StoreService;
 import org.junit.jupiter.api.Nested;
@@ -18,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MainController.class)
@@ -142,6 +145,37 @@ class MainControllerTest {
             mockMvc.perform(multipart(url).param("action", action))
                     .andExpect(status().is4xxClientError());
             verifyNoInteractions(storeService);
+        }
+    }
+
+    @Nested
+    class BuyItems {
+
+        @Test
+        void shouldRedirectToMainPage() throws Exception {
+            String url = "/buy";
+
+            when(storeService.buyItemsInCart()).thenReturn(Optional.empty());
+
+            mockMvc.perform(post(url))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/main/items"));
+            verify(storeService, times(1)).buyItemsInCart();
+        }
+
+        @Test
+        void shouldReturnPaidOrderPage() throws Exception {
+            String url = "/buy";
+            long orderId = 1L;
+            Order order = new Order(orderId, List.of());
+            String expectedRedirectUrl = "/orders/" + orderId + "?newOrder=true";
+
+            when(storeService.buyItemsInCart()).thenReturn(Optional.of(order));
+
+            mockMvc.perform(post(url))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl(expectedRedirectUrl));
+            verify(storeService, times(1)).buyItemsInCart();
         }
     }
 

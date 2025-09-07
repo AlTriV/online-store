@@ -5,6 +5,7 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
+import com.github.altriv.store.model.Order;
 import lombok.NonNull;
 
 import java.util.Optional;
@@ -19,4 +20,6 @@ public interface StoreService {
     Cart getCart();
 
     Optional<Item> getItemWithCartCount(long itemId);
+
+    Optional<Order> buyItemsInCart();
 }

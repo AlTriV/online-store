@@ -3,6 +3,7 @@ package com.github.altriv.store.controller;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
+import com.github.altriv.store.model.Order;
 import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.Optional;
 
 @Slf4j
 @Controller
@@ -53,5 +56,14 @@ public class MainController {
         log.info("Request to change item count in cart from main page. Params: itemId= {}, action= {}", itemId, action);
         storeService.changeItemCountInCart(itemId, action);
         return "redirect:/main/items";
+    }
+
+    @PostMapping("/buy")
+    public String buyItems() {
+        log.info("Request to buy items in cart");
+        Optional<Order> paidOrder = storeService.buyItemsInCart();
+        return paidOrder
+                .map(order -> "redirect:/orders/" + order.id() + "?newOrder=true")
+                .orElse("redirect:/main/items");
     }
 }

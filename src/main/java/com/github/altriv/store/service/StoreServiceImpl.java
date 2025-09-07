@@ -5,6 +5,7 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
+import com.github.altriv.store.model.Order;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,11 @@ public class StoreServiceImpl implements StoreService {
             mergeCountFromCartToItem(cart, item);
             return item;
         });
+    }
+
+    @Override
+    public Optional<Order> buyItemsInCart() {
+        return orderService.buyItemsInCart();
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {

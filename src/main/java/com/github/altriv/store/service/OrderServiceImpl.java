@@ -2,11 +2,13 @@ package com.github.altriv.store.service;
 
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
+import com.github.altriv.store.model.Order;
 import com.github.altriv.store.repository.OrderRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,5 +32,28 @@ public class OrderServiceImpl implements OrderService {
         OrderEntity orderEntity = notPaidOrder.orElseGet(OrderEntity::new);
         orderEntity.setItems(cart.getItems());
         orderRepository.save(orderEntity);
+    }
+
+    @Override
+    public List<Order> getAllPaidOrders() {
+        return orderRepository.findPaidOrders().stream()
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
+                .toList();
+    }
+
+    @Override
+    public Optional<Order> findPaidOrderById(long orderId) {
+        return orderRepository.findPaidOrderById(orderId)
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
+    }
+
+    @Override
+    public Optional<Order> buyItemsInCart() {
+        Optional<OrderEntity> notPaidOrder = orderRepository.findNotPaidOrder();
+        notPaidOrder.ifPresent(orderEntity -> {
+            orderEntity.setPaid(true);
+            orderRepository.save(orderEntity);
+        });
+        return notPaidOrder.map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
     }
 }

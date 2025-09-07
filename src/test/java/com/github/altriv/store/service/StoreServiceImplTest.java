@@ -5,6 +5,7 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
+import com.github.altriv.store.model.Order;
 import com.github.altriv.store.model.PageInfo;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -154,6 +156,34 @@ class StoreServiceImplTest {
             assertEquals(item.getDescription(), resultItem.get().getDescription());
             assertEquals(item.getPrice(), resultItem.get().getPrice());
             assertEquals(itemInCart.getCount(), resultItem.get().getCount());
+        }
+    }
+
+    @Nested
+    class BuyItemsInCart {
+
+        @Test
+        void shouldReturnEmptyIfServiceReturnEmpty() {
+            when(orderService.buyItemsInCart()).thenReturn(Optional.empty());
+
+            Optional<Order> order = storeService.buyItemsInCart();
+
+            assertFalse(order.isPresent());
+            verify(orderService, times(1)).buyItemsInCart();
+        }
+
+        @Test
+        void shouldReturnPaidOrder() {
+            Item item1 = mock(Item.class);
+            Item item2 = mock(Item.class);
+            Order order = new Order(1L, List.of(item1, item2));
+            when(orderService.buyItemsInCart()).thenReturn(Optional.of(order));
+
+            Optional<Order> paidOrder = storeService.buyItemsInCart();
+
+            assertTrue(paidOrder.isPresent());
+            assertEquals(order, paidOrder.get());
+            verify(orderService, times(1)).buyItemsInCart();
         }
     }
 }
