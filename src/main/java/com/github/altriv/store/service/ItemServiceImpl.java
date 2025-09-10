@@ -8,11 +8,11 @@ import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.repository.ItemRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,29 +30,34 @@ public class ItemServiceImpl implements ItemService {
                                   int pageSize) {
         int page = Math.max(0, pageNumber - 1);
         PageRequest pageRequest = PageRequest.of(page, pageSize, convertSort(sort));
+        String searchString = search.toLowerCase();
 
-        Page<ItemEntity> itemEntityPage;
-        if (StringUtils.isBlank(search)) {
-            itemEntityPage = itemRepository.findAll(pageRequest);
-        } else {
-            itemEntityPage = itemRepository.searchItemsWithTitleOrDescription(search.toLowerCase(), pageRequest);
-        }
-
-        List<Item> items = itemEntityPage.stream()
-                .map(this::toItem)
-                .toList();
-        PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntityPage.hasNext());
-        return new ItemsPage(items, pageInfo);
+        return itemRepository.findAllByTitleContainingOrDescriptionContaining(searchString, searchString, pageRequest)
+                .collectList()
+                .zipWith(itemRepository.countAllByTitleContainingOrDescriptionContaining(searchString, searchString))
+                .map(p -> new PageImpl<>(p.getT1(), pageRequest, p.getT2()))
+                .map(itemEntities -> {
+                    List<Item> items = itemEntities.stream().map(this::toItem).toList();
+                    PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntities.hasNext());
+                    return new ItemsPage(items, pageInfo);
+                })
+                .blockOptional()
+                .orElse(new ItemsPage(List.of(), new PageInfo(page + 1, pageSize, false)));
     }
 
     @Override
     public Optional<Item> getItem(long itemId) {
-        return itemRepository.findById(itemId).map(this::toItem);
+        return itemRepository.findById(itemId)
+                .map(this::toItem)
+                .blockOptional();
     }
 
     @Override
     public byte[] getItemImage(long itemId) {
-        return itemRepository.getItemImage(itemId).orElse(new byte[0]);
+        return itemRepository.findById(itemId)
+                .map(ItemEntity::getImage)
+                .switchIfEmpty(Mono.just(new byte[0]))
+                .block();
     }
 
     @Override
@@ -63,12 +68,12 @@ public class ItemServiceImpl implements ItemService {
                 .price(price)
                 .image(image)
                 .build();
-        itemRepository.save(itemEntity);
+        itemRepository.save(itemEntity).subscribe();
     }
 
     @Override
     public void deleteItem(long itemId) {
-        itemRepository.deleteById(itemId);
+        itemRepository.deleteById(itemId).subscribe();
     }
 
     private Sort convertSort(@NonNull ItemSorting sorting) {

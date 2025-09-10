@@ -2,12 +2,15 @@ spring:
   application:
     name: "online-store"
 
-  datasource:
-    url: jdbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
+  r2dbc:
+    url: r2dbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
     username: ${DB_USER}
     password: ${DB_PASS}
-    driver-class-name: org.postgresql.Driver
+
   liquibase:
+    url: jdbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
+    user: ${DB_USER}
+    password: ${DB_PASS}
     enabled: true
 
   thymeleaf:
@@ -21,3 +24,13 @@ server:
 store:
   view:
     itemsInRow: 3
+
+r2dbc:
+  datasource:
+    driver: "postgresql"
+    host: ${DB_HOST}
+    port: ${DB_PORT}
+    database: ${DB_DATABASE}
+    schema: ${DB_SCHEMA}
+    username: ${DB_USER}
+    password: ${DB_PASS}

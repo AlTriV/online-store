@@ -1,20 +1,17 @@
 package com.github.altriv.store.repository;
 
 import com.github.altriv.store.entity.OrderEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-import java.util.Optional;
+@Repository
+public interface OrderRepository extends R2dbcRepository<OrderEntity, Long> {
 
-public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
+    Mono<OrderEntity> findFirstByPaidIsFalse();
 
-    @Query("select o from OrderEntity o where o.paid = false")
-    Optional<OrderEntity> findNotPaidOrder();
+    Flux<OrderEntity> findAllByPaidIsTrue();
 
-    @Query("select o from OrderEntity o where o.paid = true")
-    Collection<OrderEntity> findPaidOrders();
-
-    @Query("select o from OrderEntity o where o.paid = true and o.id = :orderId")
-    Optional<OrderEntity> findPaidOrderById(Long orderId);
+    Mono<OrderEntity> findFirstByPaidIsTrueAndId(Long id);
 }

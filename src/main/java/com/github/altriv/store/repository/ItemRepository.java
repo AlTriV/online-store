@@ -1,19 +1,16 @@
 package com.github.altriv.store.repository;
 
 import com.github.altriv.store.entity.ItemEntity;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.Optional;
+@Repository
+public interface ItemRepository extends R2dbcRepository<ItemEntity, Long> {
 
-public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
+    Flux<ItemEntity> findAllByTitleContainingOrDescriptionContaining(String title, String description, Pageable pageable);
 
-    @Query("select item.image from ItemEntity item where item.id = :itemId")
-    Optional<byte[]> getItemImage(long itemId);
-
-    @Query("select item from ItemEntity item " +
-            "where lower(item.title) like %:search% or lower(item.description) like %:search%")
-    Page<ItemEntity> searchItemsWithTitleOrDescription(String search, Pageable pageable);
+    Mono<Long> countAllByTitleContainingOrDescriptionContaining(String title, String description);
 }
