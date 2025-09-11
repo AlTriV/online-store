@@ -9,6 +9,7 @@ import com.github.altriv.store.model.Order;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
 import java.util.Optional;
 
@@ -26,39 +27,47 @@ public class StoreServiceImpl implements StoreService {
                                  @NonNull ItemSorting sort,
                                  int pageNumber,
                                  int pageSize) {
-        ItemsPage itemsPage = itemService.getItemsPage(search, sort, pageNumber, pageSize);
-        Cart cart = orderService.getNotPaidOrderAsCart();
-        itemsPage.getItems().forEach(item -> mergeCountFromCartToItem(cart, item));
-        return itemsPage;
+        return itemService.getItemsPage(search, sort, pageNumber, pageSize)
+                .zipWith(orderService.getNotPaidOrderAsCart().defaultIfEmpty(Cart.empty()))
+                .map(itemPageAndCart -> {
+                    ItemsPage itemsPage = itemPageAndCart.getT1();
+                    Cart cart = itemPageAndCart.getT2();
+                    itemsPage.getItems().forEach(item -> mergeCountFromCartToItem(cart, item));
+                    return itemsPage;
+                })
+                .block();
     }
 
     @Override
     public void changeItemCountInCart(long itemId, @NonNull ItemAction action) {
-        Cart cart = orderService.getNotPaidOrderAsCart();
-        itemService.getItem(itemId).ifPresent(item -> {
-            cart.changeItemCountInCart(item, action);
-            orderService.saveCartAsNotPaidOrder(cart);
-        });
+        itemService.getItem(itemId)
+                .flatMap(item -> orderService.getNotPaidOrderAsCart()
+                        .defaultIfEmpty(Cart.empty())
+                        .doOnNext(cart -> cart.changeItemCountInCart(item, action))
+                        .flatMap(orderService::saveCartAsNotPaidOrder))
+                .subscribe();
     }
 
     @NonNull
     @Override
     public Cart getCart() {
-        return orderService.getNotPaidOrderAsCart();
+        return orderService.getNotPaidOrderAsCart()
+                .blockOptional()
+                .orElse(Cart.empty());
     }
 
     @Override
     public Optional<Item> getItemWithCartCount(long itemId) {
-        Cart cart = orderService.getNotPaidOrderAsCart();
-        return itemService.getItem(itemId).map(item -> {
-            mergeCountFromCartToItem(cart, item);
-            return item;
-        });
+        return itemService.getItem(itemId)
+                .zipWith(orderService.getNotPaidOrderAsCart().defaultIfEmpty(Cart.empty()))
+                .doOnNext(itemAndCart -> mergeCountFromCartToItem(itemAndCart.getT2(), itemAndCart.getT1()))
+                .map(Tuple2::getT1)
+                .blockOptional();
     }
 
     @Override
     public Optional<Order> buyItemsInCart() {
-        return orderService.buyItemsInCart();
+        return orderService.buyItemsInCart().blockOptional();
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {

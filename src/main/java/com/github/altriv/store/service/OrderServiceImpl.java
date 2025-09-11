@@ -7,10 +7,8 @@ import com.github.altriv.store.repository.OrderRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,46 +18,37 @@ public class OrderServiceImpl implements OrderService {
 
     @NonNull
     @Override
-    public Cart getNotPaidOrderAsCart() {
+    public Mono<Cart> getNotPaidOrderAsCart() {
         return orderRepository.findFirstByPaidIsFalse()
-                .map(orderEntity -> new Cart(orderEntity.getItems()))
-                .blockOptional()
-                .orElse(Cart.empty());
+                .map(orderEntity -> new Cart(orderEntity.getItems()));
     }
 
     @Override
-    public void saveCartAsNotPaidOrder(@NonNull Cart cart) {
-        orderRepository.findFirstByPaidIsFalse()
+    public Mono<Void> saveCartAsNotPaidOrder(@NonNull Cart cart) {
+        return orderRepository.findFirstByPaidIsFalse()
                 .switchIfEmpty(Mono.just(new OrderEntity()))
-                .map(orderEntity -> {
-                    orderEntity.setItems(cart.getItems());
-                    return orderEntity;
-                })
+                .doOnNext(orderEntity -> orderEntity.setItems(cart.getItems()))
                 .flatMap(orderRepository::save)
-                .subscribe();
+                .then();
     }
 
     @Override
-    public List<Order> getAllPaidOrders() {
+    public Flux<Order> getAllPaidOrders() {
         return orderRepository.findAllByPaidIsTrue()
-                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
-                .collectList()
-                .block();
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
     }
 
     @Override
-    public Optional<Order> findPaidOrderById(long orderId) {
+    public Mono<Order> findPaidOrderById(long orderId) {
         return orderRepository.findFirstByPaidIsTrueAndId(orderId)
-                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
-                .blockOptional();
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
     }
 
     @Override
-    public Optional<Order> buyItemsInCart() {
+    public Mono<Order> buyItemsInCart() {
         return orderRepository.findFirstByPaidIsFalse()
                 .doOnNext(orderEntity -> orderEntity.setPaid(true))
                 .flatMap(orderRepository::save)
-                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
-                .blockOptional();
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
     }
 }

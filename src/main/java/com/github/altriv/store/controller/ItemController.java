@@ -40,7 +40,7 @@ public class ItemController {
 
     @GetMapping("/{itemId}/image")
     public @ResponseBody byte[] getItemImage(@PathVariable("itemId") long itemId) {
-        return itemService.getItemImage(itemId);
+        return itemService.getItemImage(itemId).block();
     }
 
     @PostMapping("/{itemId}")

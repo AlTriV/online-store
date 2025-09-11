@@ -25,7 +25,7 @@ public class OrderController {
     @GetMapping
     public String getOrders(Model model) {
         log.info("Request to get all paid orders");
-        List<Order> paidOrders = orderService.getAllPaidOrders();
+        List<Order> paidOrders = orderService.getAllPaidOrders().collectList().block();
         model.addAttribute("orders", paidOrders);
         return "orders";
     }
@@ -35,7 +35,7 @@ public class OrderController {
                            @RequestParam(name = "newOrder", defaultValue = "false") boolean newOrder,
                            Model model) {
         log.info("Request to get paid order by id= {}", orderId);
-        Optional<Order> foundOrder = orderService.findPaidOrderById(orderId);
+        Optional<Order> foundOrder = orderService.findPaidOrderById(orderId).blockOptional();
         foundOrder.ifPresentOrElse(
                 order -> {
                     model.addAttribute("order", order);

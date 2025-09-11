@@ -11,9 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -41,7 +42,7 @@ class OrderControllerTest {
         Order order2 = new Order(2L, List.of());
         List<Order> orders = List.of(order, order2);
         String url = "/orders";
-        when(orderService.getAllPaidOrders()).thenReturn(orders);
+        when(orderService.getAllPaidOrders()).thenReturn(Flux.fromIterable(orders));
 
         mockMvc.perform(get(url))
                 .andExpect(status().isOk())
@@ -73,6 +74,8 @@ class OrderControllerTest {
         long orderId = 1L;
         String url = "/orders/" + orderId;
 
+        when(orderService.findPaidOrderById(orderId)).thenReturn(Mono.empty());
+
         mockMvc.perform(get(url).param("newOrder", newOrder))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/orders"));
@@ -87,7 +90,7 @@ class OrderControllerTest {
         long orderId = 1L;
         Order order = new Order(orderId, List.of(item1, item2));
         String url = "/orders/" + orderId;
-        when(orderService.findPaidOrderById(orderId)).thenReturn(Optional.of(order));
+        when(orderService.findPaidOrderById(orderId)).thenReturn(Mono.just(order));
 
         mockMvc.perform(get(url).param("newOrder", newOrder))
                 .andExpect(status().isOk())

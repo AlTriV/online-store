@@ -4,18 +4,17 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import lombok.NonNull;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 public interface ItemService {
 
-    ItemsPage getItemsPage(@NonNull String search, @NonNull ItemSorting sort, int pageNumber, int pageSize);
+    Mono<ItemsPage> getItemsPage(@NonNull String search, @NonNull ItemSorting sort, int pageNumber, int pageSize);
 
-    Optional<Item> getItem(long itemId);
+    Mono<Item> getItem(long itemId);
 
-    byte[] getItemImage(long itemId);
+    Mono<byte[]> getItemImage(long itemId);
 
-    void saveItem(@NonNull String title, @NonNull String description, int price, byte[] image);
+    Mono<Void> saveItem(@NonNull String title, @NonNull String description, int price, byte[] image);
 
-    void deleteItem(long itemId);
+    Mono<Void> deleteItem(long itemId);
 }

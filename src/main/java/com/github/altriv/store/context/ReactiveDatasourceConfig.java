@@ -15,7 +15,7 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
-public class ReactiveConvertersConfig extends AbstractR2dbcConfiguration {
+public class ReactiveDatasourceConfig extends AbstractR2dbcConfiguration {
 
     private final ObjectMapper objectMapper;
     private final ReactiveDatasourceProperties properties;

@@ -3,20 +3,18 @@ package com.github.altriv.store.service;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Order;
 import lombok.NonNull;
-
-import java.util.List;
-import java.util.Optional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface OrderService {
 
-    @NonNull
-    Cart getNotPaidOrderAsCart();
+    Mono<Cart> getNotPaidOrderAsCart();
 
-    void saveCartAsNotPaidOrder(@NonNull Cart cart);
+    Mono<Void> saveCartAsNotPaidOrder(@NonNull Cart cart);
 
-    List<Order> getAllPaidOrders();
+    Flux<Order> getAllPaidOrders();
 
-    Optional<Order> findPaidOrderById(long orderId);
+    Mono<Order> findPaidOrderById(long orderId);
 
-    Optional<Order> buyItemsInCart();
+    Mono<Order> buyItemsInCart();
 }

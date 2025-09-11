@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,56 +23,52 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
 
     @Override
-    public ItemsPage getItemsPage(@NonNull String search,
-                                  @NonNull ItemSorting sort,
-                                  int pageNumber,
-                                  int pageSize) {
+    public Mono<ItemsPage> getItemsPage(@NonNull String search,
+                                        @NonNull ItemSorting sort,
+                                        int pageNumber,
+                                        int pageSize) {
         int page = Math.max(0, pageNumber - 1);
         PageRequest pageRequest = PageRequest.of(page, pageSize, convertSort(sort));
         String searchString = search.toLowerCase();
 
-        return itemRepository.findAllByTitleContainingOrDescriptionContaining(searchString, searchString, pageRequest)
+        return itemRepository.findAllByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(searchString, searchString, pageRequest)
                 .collectList()
-                .zipWith(itemRepository.countAllByTitleContainingOrDescriptionContaining(searchString, searchString))
+                .zipWith(itemRepository.countAllByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(searchString, searchString))
                 .map(p -> new PageImpl<>(p.getT1(), pageRequest, p.getT2()))
-                .map(itemEntities -> {
-                    List<Item> items = itemEntities.stream().map(this::toItem).toList();
-                    PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntities.hasNext());
+                .map(itemEntityPage -> {
+                    List<Item> items = itemEntityPage.stream().map(this::toItem).toList();
+                    PageInfo pageInfo = new PageInfo(page + 1, pageSize, itemEntityPage.hasNext());
                     return new ItemsPage(items, pageInfo);
-                })
-                .blockOptional()
-                .orElse(new ItemsPage(List.of(), new PageInfo(page + 1, pageSize, false)));
+                });
     }
 
     @Override
-    public Optional<Item> getItem(long itemId) {
+    public Mono<Item> getItem(long itemId) {
         return itemRepository.findById(itemId)
-                .map(this::toItem)
-                .blockOptional();
+                .map(this::toItem);
     }
 
     @Override
-    public byte[] getItemImage(long itemId) {
+    public Mono<byte[]> getItemImage(long itemId) {
         return itemRepository.findById(itemId)
                 .map(ItemEntity::getImage)
-                .switchIfEmpty(Mono.just(new byte[0]))
-                .block();
+                .switchIfEmpty(Mono.just(new byte[0]));
     }
 
     @Override
-    public void saveItem(@NonNull String title, @NonNull String description, int price, byte[] image) {
+    public Mono<Void> saveItem(@NonNull String title, @NonNull String description, int price, byte[] image) {
         ItemEntity itemEntity = ItemEntity.builder()
                 .title(title)
                 .description(description)
                 .price(price)
                 .image(image)
                 .build();
-        itemRepository.save(itemEntity).subscribe();
+        return itemRepository.save(itemEntity).then();
     }
 
     @Override
-    public void deleteItem(long itemId) {
-        itemRepository.deleteById(itemId).subscribe();
+    public Mono<Void> deleteItem(long itemId) {
+        return itemRepository.deleteById(itemId).then();
     }
 
     private Sort convertSort(@NonNull ItemSorting sorting) {

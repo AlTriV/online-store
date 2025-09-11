@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface ItemRepository extends R2dbcRepository<ItemEntity, Long> {
 
-    Flux<ItemEntity> findAllByTitleContainingOrDescriptionContaining(String title, String description, Pageable pageable);
+    Flux<ItemEntity> findAllByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String title, String description, Pageable pageable);
 
-    Mono<Long> countAllByTitleContainingOrDescriptionContaining(String title, String description);
+    Mono<Long> countAllByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String title, String description);
 }
