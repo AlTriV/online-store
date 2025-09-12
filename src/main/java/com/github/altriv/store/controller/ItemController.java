@@ -30,7 +30,7 @@ public class ItemController {
     public String getItem(@PathVariable long itemId,
                           Model model) {
         log.info("Request to get item with id {}", itemId);
-        Optional<Item> foundItem = storeService.getItemWithCartCount(itemId);
+        Optional<Item> foundItem = storeService.getItemWithCartCount(itemId).blockOptional();
         foundItem.ifPresentOrElse(
                 item -> model.addAttribute("item", item),
                 () -> log.warn("Item with id {} not found. Redirect to main page", itemId)
@@ -47,7 +47,7 @@ public class ItemController {
     public String changeItemCount(@PathVariable("itemId") long itemId,
                                   @RequestParam(value = "action") ItemAction action) {
         log.info("Request to change item count in cart from item page. Params: itemId= {}, action= {}", itemId, action);
-        storeService.changeItemCountInCart(itemId, action);
+        storeService.changeItemCountInCart(itemId, action).subscribe();
         return "redirect:/items/" + itemId;
     }
 }

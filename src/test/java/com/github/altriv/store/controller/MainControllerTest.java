@@ -17,9 +17,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -63,7 +63,7 @@ class MainControllerTest {
                     List.of(item, item2),
                     new PageInfo(expectedPageNumber, expectedPageSize, false)
             );
-            when(storeService.searchItems(expectedSearch, expectedSort, expectedPageNumber, expectedPageSize)).thenReturn(itemsPage);
+            when(storeService.searchItems(expectedSearch, expectedSort, expectedPageNumber, expectedPageSize)).thenReturn(Mono.just(itemsPage));
 
             String url = "/main/items";
 
@@ -95,7 +95,7 @@ class MainControllerTest {
                     List.of(item, item2),
                     new PageInfo(pageNumber, pageSize, false)
             );
-            when(storeService.searchItems(search, itemSorting, pageNumber, pageSize)).thenReturn(itemsPage);
+            when(storeService.searchItems(search, itemSorting, pageNumber, pageSize)).thenReturn(Mono.just(itemsPage));
 
             String url = "/main/items";
 
@@ -126,6 +126,8 @@ class MainControllerTest {
 
             String url = "/main/items/" + id;
 
+            when(storeService.changeItemCountInCart(id, ItemAction.valueOf(action))).thenReturn(Mono.empty());
+
             mockMvc.perform(multipart(url).param("action", action))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/main/items"));
@@ -155,7 +157,7 @@ class MainControllerTest {
         void shouldRedirectToMainPage() throws Exception {
             String url = "/buy";
 
-            when(storeService.buyItemsInCart()).thenReturn(Optional.empty());
+            when(storeService.buyItemsInCart()).thenReturn(Mono.empty());
 
             mockMvc.perform(post(url))
                     .andExpect(status().is3xxRedirection())
@@ -170,7 +172,7 @@ class MainControllerTest {
             Order order = new Order(orderId, List.of());
             String expectedRedirectUrl = "/orders/" + orderId + "?newOrder=true";
 
-            when(storeService.buyItemsInCart()).thenReturn(Optional.of(order));
+            when(storeService.buyItemsInCart()).thenReturn(Mono.just(order));
 
             mockMvc.perform(post(url))
                     .andExpect(status().is3xxRedirection())

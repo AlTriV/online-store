@@ -7,6 +7,7 @@ import com.github.altriv.store.repository.OrderRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -15,8 +16,8 @@ import reactor.core.publisher.Mono;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final TransactionalOperator transactionalOperator;
 
-    @NonNull
     @Override
     public Mono<Cart> getNotPaidOrderAsCart() {
         return orderRepository.findFirstByPaidIsFalse()
@@ -29,6 +30,7 @@ public class OrderServiceImpl implements OrderService {
                 .switchIfEmpty(Mono.just(new OrderEntity()))
                 .doOnNext(orderEntity -> orderEntity.setItems(cart.getItems()))
                 .flatMap(orderRepository::save)
+                .as(transactionalOperator::transactional)
                 .then();
     }
 
@@ -49,6 +51,7 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findFirstByPaidIsFalse()
                 .doOnNext(orderEntity -> orderEntity.setPaid(true))
                 .flatMap(orderRepository::save)
-                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()));
+                .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
+                .as(transactionalOperator::transactional);
     }
 }

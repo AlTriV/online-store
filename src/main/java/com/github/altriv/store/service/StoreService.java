@@ -7,19 +7,17 @@ import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.model.Order;
 import lombok.NonNull;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 public interface StoreService {
 
-    ItemsPage searchItems(@NonNull String search, @NonNull ItemSorting sort, int pageNumber, int pageSize);
+    Mono<ItemsPage> searchItems(@NonNull String search, @NonNull ItemSorting sort, int pageNumber, int pageSize);
 
-    void changeItemCountInCart(long itemId, @NonNull ItemAction action);
+    Mono<Void> changeItemCountInCart(long itemId, @NonNull ItemAction action);
 
-    @NonNull
-    Cart getCart();
+    Mono<Cart> getCart();
 
-    Optional<Item> getItemWithCartCount(long itemId);
+    Mono<Item> getItemWithCartCount(long itemId);
 
-    Optional<Order> buyItemsInCart();
+    Mono<Order> buyItemsInCart();
 }

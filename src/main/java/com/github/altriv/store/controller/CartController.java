@@ -24,7 +24,7 @@ public class CartController {
     @GetMapping("/items")
     public String getCartItems(Model model) {
         log.info("Request to get all items in cart");
-        Cart cart = storeService.getCart();
+        Cart cart = storeService.getCart().block();
         model.addAttribute("items", cart.getItems());
         model.addAttribute("total", cart.getTotalPrice());
         model.addAttribute("empty", cart.isEmpty());
@@ -35,7 +35,7 @@ public class CartController {
     public String changeItemCount(@PathVariable("itemId") long itemId,
                                   @RequestParam(value = "action") ItemAction action) {
         log.info("Request to change item count in cart from cart page. Params: itemId= {}, action= {}", itemId, action);
-        storeService.changeItemCountInCart(itemId, action);
+        storeService.changeItemCountInCart(itemId, action).subscribe();
         return "redirect:/cart/items";
     }
 }

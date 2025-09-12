@@ -15,8 +15,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import reactor.core.publisher.Mono;
 
-import java.util.Optional;
-
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -49,7 +47,7 @@ class ItemControllerTest {
             long itemId = 1L;
             String url = "/items/" + itemId;
 
-            when(storeService.getItemWithCartCount(itemId)).thenReturn(Optional.empty());
+            when(storeService.getItemWithCartCount(itemId)).thenReturn(Mono.empty());
 
             mockMvc.perform(get(url))
                     .andExpect(status().is3xxRedirection())
@@ -63,7 +61,7 @@ class ItemControllerTest {
             String url = "/items/" + itemId;
             Item item = new Item(itemId, "title1", "item1 description", 1200, 5);
 
-            when(storeService.getItemWithCartCount(itemId)).thenReturn(Optional.of(item));
+            when(storeService.getItemWithCartCount(itemId)).thenReturn(Mono.just(item));
 
             mockMvc.perform(get(url))
                     .andExpect(status().isOk())
@@ -82,6 +80,8 @@ class ItemControllerTest {
         @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
         void shouldPerformActionAndReturnToMainPage(String action) throws Exception {
             long id = 1L;
+
+            when(storeService.changeItemCountInCart(id, ItemAction.valueOf(action))).thenReturn(Mono.empty());
 
             String url = "/items/" + id;
 

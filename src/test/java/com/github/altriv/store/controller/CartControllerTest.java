@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -44,7 +45,7 @@ class CartControllerTest {
 
             String url = "/cart/items";
 
-            when(storeService.getCart()).thenReturn(cart);
+            when(storeService.getCart()).thenReturn(Mono.just(cart));
 
             mockMvc.perform(get(url))
                     .andExpect(status().isOk())
@@ -64,7 +65,7 @@ class CartControllerTest {
 
             String url = "/cart/items";
 
-            when(storeService.getCart()).thenReturn(cart);
+            when(storeService.getCart()).thenReturn(Mono.just(cart));
 
             mockMvc.perform(get(url))
                     .andExpect(status().isOk())
@@ -86,6 +87,8 @@ class CartControllerTest {
         @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
         void shouldPerformActionAndReturnToCartPage(String action) throws Exception {
             long id = 1L;
+
+            when(storeService.changeItemCountInCart(id, ItemAction.valueOf(action))).thenReturn(Mono.empty());
 
             String url = "/cart/items/" + id;
 

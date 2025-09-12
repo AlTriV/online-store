@@ -8,9 +8,11 @@ import com.github.altriv.store.repository.OrderRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,6 +34,9 @@ class OrderServiceImplTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private TransactionalOperator transactionalOperator;
 
     @Test
     void shouldReturnEmptyCartIfUnpaidOrderNotFound() {
@@ -81,6 +86,8 @@ class OrderServiceImplTest {
         Cart cart = new Cart(List.of(item, item2));
         OrderEntity expectedOrderEntity = new OrderEntity(1L, false, cart.getItems());
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.just(orderEntity));
+        when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.saveCartAsNotPaidOrder(cart).subscribe();
 
@@ -95,6 +102,8 @@ class OrderServiceImplTest {
         Cart cart = new Cart(List.of(item, item2));
         OrderEntity expectedOrderEntity = new OrderEntity(null, false, cart.getItems());
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.empty());
+        when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.saveCartAsNotPaidOrder(cart).subscribe();
 
@@ -160,6 +169,8 @@ class OrderServiceImplTest {
     @Test
     void shouldReturnEmptyIfCartNotFound() {
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.empty());
+        when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.buyItemsInCart()
                 .doOnNext(Assertions::assertNull)
@@ -178,6 +189,8 @@ class OrderServiceImplTest {
         Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
 
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.just(orderEntity));
+        when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         orderService.buyItemsInCart()
                 .doOnNext(order -> {

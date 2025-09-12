@@ -42,7 +42,7 @@ public class MainController {
                            Model model) {
         log.info("Request to get items. Params: search= '{}', sort= {}, pageNumber= {}, pageSize= {}", search, sort, pageNumber, pageSize);
 
-        ItemsPage itemsPage = storeService.searchItems(search, sort, pageNumber, pageSize);
+        ItemsPage itemsPage = storeService.searchItems(search, sort, pageNumber, pageSize).block();
 
         model.addAttribute("paging", itemsPage.getPageInfo());
         model.addAttribute("items", itemsPage.getItemRows(itemsInRow));
@@ -54,14 +54,14 @@ public class MainController {
     public String changeItemCount(@PathVariable("itemId") long itemId,
                                   @RequestParam(value = "action") ItemAction action) {
         log.info("Request to change item count in cart from main page. Params: itemId= {}, action= {}", itemId, action);
-        storeService.changeItemCountInCart(itemId, action);
+        storeService.changeItemCountInCart(itemId, action).block();
         return "redirect:/main/items";
     }
 
     @PostMapping("/buy")
     public String buyItems() {
         log.info("Request to buy items in cart");
-        Optional<Order> paidOrder = storeService.buyItemsInCart();
+        Optional<Order> paidOrder = storeService.buyItemsInCart().blockOptional();
         return paidOrder
                 .map(order -> "redirect:/orders/" + order.id() + "?newOrder=true")
                 .orElse("redirect:/main/items");
