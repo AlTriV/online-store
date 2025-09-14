@@ -1,4 +1,4 @@
-package com.github.altriv.store.context;
+package com.github.altriv.store.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

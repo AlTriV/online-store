@@ -1,4 +1,4 @@
-package com.github.altriv.store.context;
+package com.github.altriv.store.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.altriv.store.entity.converter.OrderItemsReadConverter;
