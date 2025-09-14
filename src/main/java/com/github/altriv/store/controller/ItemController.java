@@ -1,6 +1,5 @@
 package com.github.altriv.store.controller;
 
-import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.service.ItemService;
 import com.github.altriv.store.service.StoreService;
@@ -12,10 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Controller
@@ -27,27 +25,27 @@ public class ItemController {
     private final StoreService storeService;
 
     @GetMapping("/{itemId}")
-    public String getItem(@PathVariable long itemId,
-                          Model model) {
+    public Mono<String> getItem(@PathVariable long itemId,
+                                Model model) {
         log.info("Request to get item with id {}", itemId);
-        Optional<Item> foundItem = storeService.getItemWithCartCount(itemId).blockOptional();
-        foundItem.ifPresentOrElse(
-                item -> model.addAttribute("item", item),
-                () -> log.warn("Item with id {} not found. Redirect to main page", itemId)
-        );
-        return foundItem.isPresent() ? "item" : "redirect:/main/items";
+        return storeService.getItemWithCartCount(itemId)
+                .map(item -> {
+                    model.addAttribute("item", item);
+                    return "item";
+                })
+                .defaultIfEmpty("redirect:/main/items");
     }
 
     @GetMapping("/{itemId}/image")
-    public @ResponseBody byte[] getItemImage(@PathVariable("itemId") long itemId) {
-        return itemService.getItemImage(itemId).block();
+    public @ResponseBody Mono<byte[]> getItemImage(@PathVariable("itemId") long itemId) {
+        return itemService.getItemImage(itemId);
     }
 
     @PostMapping("/{itemId}")
-    public String changeItemCount(@PathVariable("itemId") long itemId,
-                                  @RequestParam(value = "action") ItemAction action) {
+    public Mono<String> changeItemCount(@PathVariable("itemId") long itemId,
+                                        @RequestPart(value = "action") String action) {
         log.info("Request to change item count in cart from item page. Params: itemId= {}, action= {}", itemId, action);
-        storeService.changeItemCountInCart(itemId, action).subscribe();
-        return "redirect:/items/" + itemId;
+        return storeService.changeItemCountInCart(itemId, ItemAction.valueOf(action))
+                .then(Mono.just("redirect:/items/" + itemId));
     }
 }

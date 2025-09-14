@@ -2,8 +2,6 @@ package com.github.altriv.store.controller;
 
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
-import com.github.altriv.store.model.ItemsPage;
-import com.github.altriv.store.model.Order;
 import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +13,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.Optional;
+import org.springframework.web.bind.annotation.RequestPart;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Controller
@@ -30,40 +28,39 @@ public class MainController {
     private final StoreService storeService;
 
     @GetMapping
-    public String start() {
-        return "redirect:/main/items";
+    public Mono<String> start() {
+        return Mono.just("redirect:/main/items");
     }
 
-    @GetMapping("/main/items")
-    public String getItems(@RequestParam(name = "search", defaultValue = "") String search,
-                           @RequestParam(name = "sort", defaultValue = "NO") ItemSorting sort,
-                           @RequestParam(name = "pageNumber", defaultValue = "1") int pageNumber,
-                           @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-                           Model model) {
+    @GetMapping(path = "/main/items")
+    public Mono<String> getItems(@RequestParam(name = "search", defaultValue = "") String search,
+                                 @RequestParam(name = "sort", defaultValue = "NO") ItemSorting sort,
+                                 @RequestParam(name = "pageNumber", defaultValue = "1") int pageNumber,
+                                 @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+                                 Model model) {
         log.info("Request to get items. Params: search= '{}', sort= {}, pageNumber= {}, pageSize= {}", search, sort, pageNumber, pageSize);
 
-        ItemsPage itemsPage = storeService.searchItems(search, sort, pageNumber, pageSize).block();
-
-        model.addAttribute("paging", itemsPage.getPageInfo());
-        model.addAttribute("items", itemsPage.getItemRows(itemsInRow));
-
-        return "main";
+        return storeService.searchItems(search, sort, pageNumber, pageSize)
+                .doOnNext(itemsPage -> {
+                    model.addAttribute("paging", itemsPage.getPageInfo());
+                    model.addAttribute("items", itemsPage.getItemRows(itemsInRow));
+                })
+                .map(itemsPage -> "main");
     }
 
-    @PostMapping("/main/items/{itemId}")
-    public String changeItemCount(@PathVariable("itemId") long itemId,
-                                  @RequestParam(value = "action") ItemAction action) {
+    @PostMapping(value = "/main/items/{itemId}")
+    public Mono<String> changeItemCount(@PathVariable("itemId") long itemId,
+                                        @RequestPart("action") String action) {
         log.info("Request to change item count in cart from main page. Params: itemId= {}, action= {}", itemId, action);
-        storeService.changeItemCountInCart(itemId, action).block();
-        return "redirect:/main/items";
+        return storeService.changeItemCountInCart(itemId, ItemAction.valueOf(action))
+                .then(Mono.just("redirect:/main/items"));
     }
 
     @PostMapping("/buy")
-    public String buyItems() {
+    public Mono<String> buyItems() {
         log.info("Request to buy items in cart");
-        Optional<Order> paidOrder = storeService.buyItemsInCart().blockOptional();
-        return paidOrder
-                .map(order -> "redirect:/orders/" + order.id() + "?newOrder=true")
-                .orElse("redirect:/main/items");
+        return storeService.buyItemsInCart()
+                .map(order -> String.format("redirect:/orders/%d?newOrder=true", order.id()))
+                .defaultIfEmpty("redirect:/main/items");
     }
 }

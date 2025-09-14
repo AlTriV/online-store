@@ -2,6 +2,9 @@ spring:
   application:
     name: "online-store"
 
+  webflux:
+    base-path: /store
+
   r2dbc:
     url: r2dbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
     username: ${DB_USER}
@@ -18,8 +21,6 @@ spring:
 
 server:
   port: 8080
-  servlet:
-    context-path: /store
 
 store:
   view:
