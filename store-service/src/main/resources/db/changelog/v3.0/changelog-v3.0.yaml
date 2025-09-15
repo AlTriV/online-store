@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: "add_table_wallet"
+      author: "avtry"
+      comment: "Add table wallet"
+      changes:
+        - sqlFile:
+            path: add_table_wallet.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: add_table_wallet_rollback.sql
+            relativeToChangelogFile: true
