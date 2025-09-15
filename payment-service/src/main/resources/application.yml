@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: payment-service
+
+  webflux:
+    base-path: /payment
+
+  r2dbc:
+    url: r2dbc:postgresql://${DB_URL}?currentSchema=${DB_SCHEMA}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+
+server:
+  port: 8081
+

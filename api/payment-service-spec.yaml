@@ -1,0 +1,112 @@
+openapi: 3.0.4
+info:
+  title: Payment System v1.0
+  description: |-
+    This is OpenAPI 3.0 specification for online store payment system.  
+
+    Some useful links:
+    - [The Online Store repository](https://github.com/AlTriV/online-store)
+  contact:
+    email: aliaksei.trynda@gmail.com
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081/payment
+paths:
+  /balance:
+    get:
+      summary: Get current balance.
+      description: Request balance.
+      operationId: getBalance
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceRs'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /pay:
+    post:
+      summary: Purchase order.
+      description: Request to purchase order.
+      operationId: purchase
+      requestBody:
+        description: Purchase order
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRq'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRs'
+        '400':
+          description: Invalid input
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    BalanceRs:
+      type: object
+      description: Get balance request
+      properties:
+        balance:
+          type: integer
+          format: int64
+          description: Balance value
+          example: 100000
+    PurchaseRq:
+      type: object
+      description: Request to purchase order
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Purchase order request uuid
+        price:
+          type: integer
+          format: int64
+          description: Order total price
+          example: 1200
+    PurchaseRs:
+      type: object
+      description: Purchase response
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Purchase order request uuid
+        purchaseResult:
+          type: boolean
+          description: Is purchase success
+          example: false
+        errorMessage:
+          type: string
+          description: Error message if purchase is unsuccess
+          example: "Have no enough cash"
+    Error:
+      type: object
+      description: Error object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message

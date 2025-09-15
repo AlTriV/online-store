@@ -1,0 +1,72 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.15.0'
+}
+
+group = 'com.github.altriv'
+version = '0.0.1-SNAPSHOT'
+description = 'payment-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+openApiGenerate {
+    generatorName.set("spring")
+    inputSpec.set("$rootDir/api/payment-service-spec.yaml")
+    outputDir.set("$projectDir/build/generated")
+    ignoreFileOverride.set(".openapi-generator-java-sources.ignore")
+    modelPackage.set("com.github.altriv.paymentservice.domain")
+    apiPackage.set("com.github.altriv.paymentservice.api")
+    configOptions.set([
+            hideGenerationTimestamp: "true",
+            requestMappingMode: "controller",
+            interfaceOnly: "true",
+            library: "spring-boot",
+            reactive: "true",
+            useSpringBoot3: "true",
+            useJakartaEe: "true",
+            dateLibrary: "java8",
+            openApiNullable: "false",
+            serializableModel: "true",
+            returnSuccessCode: "true"
+    ])
+}
+
+sourceSets.main.java.srcDir "$projectDir/build/generated/src/main/java"
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.28'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:r2dbc-postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('compileJava') {
+    dependsOn(tasks.openApiGenerate)
+}
