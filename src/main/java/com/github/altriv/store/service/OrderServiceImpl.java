@@ -21,7 +21,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<Cart> getNotPaidOrderAsCart() {
         return orderRepository.findFirstByPaidIsFalse()
-                .map(orderEntity -> new Cart(orderEntity.getItems()));
+                .map(orderEntity -> new Cart(orderEntity.getItems()))
+                .defaultIfEmpty(Cart.empty());
     }
 
     @Override
