@@ -4,34 +4,33 @@ import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.service.StoreService;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@Disabled
-@WebMvcTest(CartController.class)
+@WebFluxTest(CartController.class)
 class CartControllerTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @MockitoBean
     private StoreService storeService;
@@ -40,7 +39,7 @@ class CartControllerTest {
     class CartItemsTest {
 
         @Test
-        void shouldReturnNotEmptyCartPage() throws Exception {
+        void shouldReturnNotEmptyCartPage() {
             Item item = new Item(1L, "title", "description", 1000, 2);
             Item item2 = new Item(2L, "title2", "description2", 2000, 1);
             Cart cart = new Cart(List.of(item, item2));
@@ -49,35 +48,58 @@ class CartControllerTest {
 
             when(storeService.getCart()).thenReturn(Mono.just(cart));
 
-            mockMvc.perform(get(url))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("cart"))
-                    .andExpect(model().attributeExists("items"))
-                    .andExpect(model().attribute("items", cart.getItems()))
-                    .andExpect(model().attributeExists("total"))
-                    .andExpect(model().attribute("total", cart.getTotalPrice()))
-                    .andExpect(model().attributeExists("items"))
-                    .andExpect(model().attribute("empty", cart.isEmpty()));
+            webTestClient.get().uri(url)
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectHeader().valueEquals(HttpHeaders.CONTENT_TYPE, "text/html")
+                    .expectBody(String.class)
+                    .consumeWith(result -> {
+                        String body = result.getResponseBody();
+                        assertNotNull(body);
+
+                        assertTrue(body.contains("<title>Корзина товаров</title>"));
+
+                        assertTrue(body.contains("<img width=\"300\" height=\"300\" src=\"http://localhost:8080/store/items/1/image\">"));
+                        assertTrue(body.contains("<b>title</b>"));
+                        assertTrue(body.contains("<b>1000 руб.</b>"));
+                        assertTrue(body.contains("<tr><td>description</td></tr>"));
+                        assertTrue(body.contains("<span>2</span>"));
+
+                        assertTrue(body.contains("<img width=\"300\" height=\"300\" src=\"http://localhost:8080/store/items/2/image\">"));
+                        assertTrue(body.contains("<b>title2</b>"));
+                        assertTrue(body.contains("<b>2000 руб.</b>"));
+                        assertTrue(body.contains("<tr><td>description2</td></tr>"));
+                        assertTrue(body.contains("<span>1</span>"));
+
+                        assertTrue(body.contains("<b>Итого: 4000 руб.</b>"));
+                        assertTrue(body.contains("<button>Купить</button>"));
+                    });
+
             verify(storeService, times(1)).getCart();
         }
 
         @Test
-        void shouldReturnEmptyCartPage() throws Exception {
+        void shouldReturnEmptyCartPage() {
             Cart cart = Cart.empty();
 
             String url = "/cart/items";
 
             when(storeService.getCart()).thenReturn(Mono.just(cart));
 
-            mockMvc.perform(get(url))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("cart"))
-                    .andExpect(model().attributeExists("items"))
-                    .andExpect(model().attribute("items", cart.getItems()))
-                    .andExpect(model().attributeExists("total"))
-                    .andExpect(model().attribute("total", cart.getTotalPrice()))
-                    .andExpect(model().attributeExists("items"))
-                    .andExpect(model().attribute("empty", cart.isEmpty()));
+            webTestClient.get().uri(url)
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectHeader().valueEquals(HttpHeaders.CONTENT_TYPE, "text/html")
+                    .expectBody(String.class)
+                    .consumeWith(result -> {
+                        String body = result.getResponseBody();
+                        assertNotNull(body);
+
+                        assertTrue(body.contains("<title>Корзина товаров</title>"));
+                        assertTrue(body.contains("<b>Итого: 0 руб.</b>"));
+                        assertFalse(body.contains("<button>Купить</button>"));
+                    });
+
             verify(storeService, times(1)).getCart();
         }
     }
@@ -87,16 +109,23 @@ class CartControllerTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
-        void shouldPerformActionAndReturnToCartPage(String action) throws Exception {
+        void shouldPerformActionAndReturnToCartPage(String action) {
             long id = 1L;
 
             when(storeService.changeItemCountInCart(id, ItemAction.valueOf(action))).thenReturn(Mono.empty());
 
             String url = "/cart/items/" + id;
 
-            mockMvc.perform(multipart(url).param("action", action))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/cart/items"));
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("action", action);
+
+            webTestClient.post().uri(url)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .bodyValue(builder.build())
+                    .exchange()
+                    .expectStatus().is3xxRedirection()
+                    .expectHeader().valueEquals(HttpHeaders.LOCATION, "/cart/items");
+
             verify(storeService, times(1)).changeItemCountInCart(id, ItemAction.valueOf(action));
         }
 
@@ -107,11 +136,18 @@ class CartControllerTest {
                 "'Delete', 1",
                 "'DELETE', id"
         })
-        void shouldReturnClientError(String action, String id) throws Exception {
+        void shouldReturnClientError(String action, String id) {
             String url = "/cart/items/" + id;
 
-            mockMvc.perform(multipart(url).param("action", action))
-                    .andExpect(status().is4xxClientError());
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("action", action);
+
+            webTestClient.post().uri(url)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .bodyValue(builder.build())
+                    .exchange()
+                    .expectStatus().is4xxClientError();
+
             verifyNoInteractions(storeService);
         }
     }

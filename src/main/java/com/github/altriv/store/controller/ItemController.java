@@ -5,8 +5,10 @@ import com.github.altriv.store.service.ItemService;
 import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,5 +49,10 @@ public class ItemController {
         log.info("Request to change item count in cart from item page. Params: itemId= {}, action= {}", itemId, action);
         return storeService.changeItemCountInCart(itemId, ItemAction.valueOf(action))
                 .then(Mono.just("redirect:/items/" + itemId));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Mono<ResponseEntity<String>> handleCustomException(IllegalArgumentException ex) {
+        return Mono.just(ResponseEntity.badRequest().body(ex.getMessage()));
     }
 }
