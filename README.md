@@ -1,8 +1,9 @@
-# Online Store v1
+# Online Store v2
 
 ## Introduction
 
-This project is a simple web application based on Spring Boot, that implements a small online store.
+This project is a simple reactive web application based on Spring Boot using reactive stack (Spring WebFlux, Spring Data R2DBC)
+, that implements a small online store.
 
 
 ## Features
