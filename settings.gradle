@@ -1,1 +1,3 @@
 rootProject.name = 'online-store'
+
+include 'store-service'
