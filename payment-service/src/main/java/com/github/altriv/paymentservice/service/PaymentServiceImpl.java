@@ -3,6 +3,8 @@ package com.github.altriv.paymentservice.service;
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
 import com.github.altriv.paymentservice.controller.AddCreditsRs;
 import com.github.altriv.paymentservice.domain.BalanceRs;
+import com.github.altriv.paymentservice.domain.PurchaseRq;
+import com.github.altriv.paymentservice.domain.PurchaseRs;
 import com.github.altriv.paymentservice.entity.Wallet;
 import com.github.altriv.paymentservice.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +36,31 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public Mono<BalanceRs> getBalance() {
+        return findWallet()
+                .map(wallet -> new BalanceRs().balance(wallet.getBalance()));
+    }
+
+    @Override
+    public Mono<PurchaseRs> purchase(PurchaseRq purchaseRq) {
+        return findWallet()
+                .filter(Objects::nonNull)
+                .filter(wallet -> wallet.getBalance() >= purchaseRq.getPrice())
+                .flatMap(wallet -> {
+                    wallet.setBalance(wallet.getBalance() - purchaseRq.getPrice());
+                    return walletRepository.save(wallet);
+                })
+                .map(wallet -> new PurchaseRs().purchaseResult(true).requestId(purchaseRq.getRequestId()))
+                .defaultIfEmpty(new PurchaseRs()
+                        .purchaseResult(false)
+                        .requestId(purchaseRq.getRequestId())
+                        .errorMessage("Have no enough credits")
+                );
+    }
+
+    private Mono<Wallet> findWallet() {
         return walletRepository.findAll()
                 .collectList()
                 .filter(list -> !list.isEmpty())
-                .map(List::getFirst)
-                .map(wallet -> new BalanceRs().balance(wallet.getBalance()));
+                .map(List::getFirst);
     }
 }

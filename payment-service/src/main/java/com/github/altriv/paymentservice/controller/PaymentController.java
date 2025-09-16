@@ -5,11 +5,14 @@ import com.github.altriv.paymentservice.api.PayApi;
 import com.github.altriv.paymentservice.domain.BalanceRs;
 import com.github.altriv.paymentservice.domain.PurchaseRq;
 import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.UnexpectedError;
 import com.github.altriv.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,7 +36,9 @@ public class PaymentController implements BalanceApi, PayApi {
 
     @Override
     public Mono<ResponseEntity<PurchaseRs>> purchase(Mono<PurchaseRq> purchaseRq, ServerWebExchange exchange) {
-        return PayApi.super.purchase(purchaseRq, exchange);
+        log.info("Request to purchase order");
+        return purchaseRq.flatMap(paymentService::purchase)
+                .map(ResponseEntity::ok);
     }
 
     @PostMapping(path = "/add", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -41,5 +46,13 @@ public class PaymentController implements BalanceApi, PayApi {
         log.info("ADMIN. Request to add credits on wallet balance. Params: {}", addCreditsRq);
         return paymentService.addCredits(addCreditsRq)
                 .map(response -> ResponseEntity.ok().body(response));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Mono<ResponseEntity<UnexpectedError>> handleGenericException(Exception exception) {
+        return Mono.just(exception)
+                .doOnNext(ex -> log.error("Exception: {}", ex.getMessage()))
+                .map(e -> new UnexpectedError(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()), "Unexpected error occurred"))
+                .map(error -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error));
     }
 }

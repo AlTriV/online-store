@@ -1,12 +1,15 @@
 package com.github.altriv.paymentservice.service;
 
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
+import com.github.altriv.paymentservice.domain.PurchaseRq;
 import com.github.altriv.paymentservice.entity.Wallet;
 import com.github.altriv.paymentservice.repository.WalletRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -16,6 +19,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
@@ -24,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
         properties = {"spring.sql.init.mode=always"}
 )
 @Testcontainers
-class PaymentServiceImplIntegrationTest {
+class PaymentServiceIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17:5");
@@ -48,7 +53,7 @@ class PaymentServiceImplIntegrationTest {
 
     @BeforeEach
     void prepareDatabase() {
-        walletRepository.deleteAll().subscribe();
+        walletRepository.deleteAll().block();
     }
 
     @Nested
@@ -64,13 +69,69 @@ class PaymentServiceImplIntegrationTest {
         @Test
         void shouldReturnBalanceIfWalletFound() {
             long balance = 100L;
-            walletRepository.save(new Wallet(null, balance)).subscribe();
+            walletRepository.save(new Wallet(null, balance)).block();
 
             paymentService.getBalance()
                     .doOnNext(balanceRs -> {
                         assertNotNull(balanceRs);
                         assertEquals(balance, balanceRs.getBalance());
                     })
+                    .block();
+        }
+    }
+
+    @Nested
+    class PurchaseTest {
+
+        @Test
+        void shouldReturnUnsuccessPurchaseIfWalletNotFound() {
+            UUID requestId = UUID.randomUUID();
+            PurchaseRq purchaseRq = new PurchaseRq(requestId, 500L);
+
+            paymentService.purchase(purchaseRq)
+                    .doOnNext(purchaseRs -> {
+                        assertNotNull(purchaseRs);
+                        assertEquals(requestId, purchaseRs.getRequestId());
+                        assertFalse(purchaseRs.getPurchaseResult());
+                        assertEquals("Have no enough credits", purchaseRs.getErrorMessage());
+                    })
+                    .block();
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {499L, 100L, 250L})
+        void shouldReturnUnsuccessPurchaseIfHaveNoCredits(long balance) {
+            UUID requestId = UUID.randomUUID();
+            PurchaseRq purchaseRq = new PurchaseRq(requestId, 500L);
+            walletRepository.save(new Wallet(null, balance)).block();
+
+            paymentService.purchase(purchaseRq)
+                    .doOnNext(purchaseRs -> {
+                        assertNotNull(purchaseRs);
+                        assertEquals(requestId, purchaseRs.getRequestId());
+                        assertFalse(purchaseRs.getPurchaseResult());
+                        assertEquals("Have no enough credits", purchaseRs.getErrorMessage());
+                    })
+                    .block();
+        }
+
+        @ParameterizedTest
+        @ValueSource(longs = {500L, 1000L, 2500L})
+        void shouldReturnSuccessPurchaseIfHaveEnoughCredits(long balance) {
+            long price = 500L;
+            UUID requestId = UUID.randomUUID();
+            PurchaseRq purchaseRq = new PurchaseRq(requestId, price);
+            walletRepository.save(new Wallet(null, balance)).block();
+
+            paymentService.purchase(purchaseRq)
+                    .doOnNext(purchaseRs -> {
+                        assertNotNull(purchaseRs);
+                        assertEquals(requestId, purchaseRs.getRequestId());
+                        assertTrue(purchaseRs.getPurchaseResult());
+                        assertNull(purchaseRs.getErrorMessage());
+                    })
+                    .flatMap(purchaseRs -> paymentService.getBalance())
+                    .doOnNext(balanceRs -> assertEquals(balance - price, balanceRs.getBalance()))
                     .block();
         }
     }

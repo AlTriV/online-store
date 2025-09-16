@@ -14,12 +14,12 @@ servers:
 paths:
   /balance:
     get:
-      summary: Get current balance.
-      description: Request balance.
+      summary: Get current balance
+      description: Request balance
       operationId: getBalance
       responses:
         '200':
-          description: successful operation
+          description: Successful operation
           content:
             application/json:
               schema:
@@ -29,11 +29,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/UnexpectedError"
   /pay:
     post:
-      summary: Purchase order.
-      description: Request to purchase order.
+      summary: Purchase order
+      description: Request to purchase order
       operationId: purchase
       requestBody:
         description: Purchase order
@@ -44,7 +44,7 @@ paths:
         required: true
       responses:
         '200':
-          description: Successful operation
+          description: Purchase complete
           content:
             application/json:
               schema:
@@ -56,7 +56,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/UnexpectedError"
 components:
   schemas:
     BalanceRs:
@@ -69,6 +69,9 @@ components:
           description: Balance value
           example: 100000
     PurchaseRq:
+      required:
+        - requestId
+        - price
       type: object
       description: Request to purchase order
       properties:
@@ -82,6 +85,9 @@ components:
           description: Order total price
           example: 1200
     PurchaseRs:
+      required:
+        - requestId
+        - purchaseResult
       type: object
       description: Purchase response
       properties:
@@ -97,7 +103,7 @@ components:
           type: string
           description: Error message if purchase is unsuccess
           example: "Have no enough cash"
-    Error:
+    UnexpectedError:
       type: object
       description: Error object
       properties:

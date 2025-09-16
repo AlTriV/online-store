@@ -1,15 +1,25 @@
 package com.github.altriv.paymentservice.controller;
 
 import com.github.altriv.paymentservice.domain.BalanceRs;
+import com.github.altriv.paymentservice.domain.PurchaseRq;
+import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.UnexpectedError;
 import com.github.altriv.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,6 +70,50 @@ class PaymentControllerTest {
     }
 
     @Nested
+    class PurchaseTest {
+
+        @ParameterizedTest
+        @CsvSource({
+                "true, ",
+                "false, 'Have no enough credits'"
+        })
+        void shouldCompletePurchase(boolean purchaseResult, String errorMessage) {
+            UUID requestId = UUID.randomUUID();
+            PurchaseRq purchaseRq = new PurchaseRq(requestId, 100L);
+            PurchaseRs expectedPurchase = new PurchaseRs(requestId, purchaseResult).errorMessage(errorMessage);
+            when(paymentService.purchase(purchaseRq)).thenReturn(Mono.just(expectedPurchase));
+
+            String url = "/pay";
+
+            webTestClient.post().uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(purchaseRq)
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectBody(PurchaseRs.class).isEqualTo(expectedPurchase);
+            verify(paymentService, times(1)).purchase(purchaseRq);
+        }
+
+        @ParameterizedTest
+        @EmptySource
+        @ValueSource(strings = {
+                "{]",
+                "{\"requestId\": \"77257e9c-ef11-461d-b278-cba0ease57d1\"}",
+                "{\"price\": 500}",
+                "{\"other\": \"json value\"}"
+        })
+        void shouldReturnBadRequestIfValidationFails(String content) {
+            String url = "/pay";
+
+            webTestClient.post().uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(content)
+                    .exchange()
+                    .expectStatus().isBadRequest();
+        }
+    }
+
+    @Nested
     class AddCreditsTest {
 
         @Test
@@ -79,5 +133,19 @@ class PaymentControllerTest {
                     .expectBody(AddCreditsRs.class).isEqualTo(addCreditsRs);
             verify(paymentService, times(1)).addCredits(addCreditsRq);
         }
+    }
+
+    @Test
+    void shouldReturnInternalServerErrorExceptionOccurred() {
+        String url = "/balance";
+        UnexpectedError error = new UnexpectedError(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()), "Unexpected error occurred");
+
+        when(paymentService.getBalance()).thenThrow(new RuntimeException("Unexpected error"));
+
+        webTestClient.get().uri(url)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+                .expectBody(UnexpectedError.class).isEqualTo(error);
+        verify(paymentService, times(1)).getBalance();
     }
 }
