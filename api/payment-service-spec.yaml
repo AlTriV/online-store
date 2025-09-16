@@ -24,8 +24,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BalanceRs'
-        '400':
-          description: Invalid status value
         default:
           description: Unexpected error
           content:
