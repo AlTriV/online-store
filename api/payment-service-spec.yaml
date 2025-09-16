@@ -24,12 +24,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BalanceRs'
-        default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UnexpectedError"
   /pay:
     post:
       summary: Purchase order
@@ -51,12 +45,6 @@ paths:
                 $ref: '#/components/schemas/PurchaseRs'
         '400':
           description: Invalid input
-        default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UnexpectedError"
 components:
   schemas:
     BalanceRs:
@@ -103,14 +91,3 @@ components:
           type: string
           description: Error message if purchase is unsuccess
           example: "Have no enough cash"
-    UnexpectedError:
-      type: object
-      description: Error object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-      required:
-        - code
-        - message

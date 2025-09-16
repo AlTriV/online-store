@@ -3,7 +3,6 @@ package com.github.altriv.paymentservice.controller;
 import com.github.altriv.paymentservice.domain.BalanceRs;
 import com.github.altriv.paymentservice.domain.PurchaseRq;
 import com.github.altriv.paymentservice.domain.PurchaseRs;
-import com.github.altriv.paymentservice.domain.UnexpectedError;
 import com.github.altriv.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,7 +12,6 @@ import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -133,19 +131,5 @@ class PaymentControllerTest {
                     .expectBody(AddCreditsRs.class).isEqualTo(addCreditsRs);
             verify(paymentService, times(1)).addCredits(addCreditsRq);
         }
-    }
-
-    @Test
-    void shouldReturnInternalServerErrorExceptionOccurred() {
-        String url = "/balance";
-        UnexpectedError error = new UnexpectedError(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()), "Unexpected error occurred");
-
-        when(paymentService.getBalance()).thenThrow(new RuntimeException("Unexpected error"));
-
-        webTestClient.get().uri(url)
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-                .expectBody(UnexpectedError.class).isEqualTo(error);
-        verify(paymentService, times(1)).getBalance();
     }
 }
