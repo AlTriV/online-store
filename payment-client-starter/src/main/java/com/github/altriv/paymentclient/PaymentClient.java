@@ -4,7 +4,8 @@ import com.github.altriv.paymentclient.api.DefaultApi;
 
 public class PaymentClient extends DefaultApi {
 
-    public PaymentClient() {
+    public PaymentClient(String url) {
         super();
+        getApiClient().setBasePath(url);
     }
 }
