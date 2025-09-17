@@ -1,0 +1,34 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+    id 'org.openapi.generator' version '7.15.0'
+}
+
+description = 'payment-client-starter'
+
+tasks.register('buildClient', GenerateTask) {
+    generatorName.set("java")
+    inputSpec.set("$rootDir/api/payment-service-spec.yaml")
+    outputDir.set("$projectDir/build/generated")
+    ignoreFileOverride.set(".openapi-generator-java-sources.ignore")
+    modelPackage.set("com.github.altriv.paymentclient.domain")
+    invokerPackage.set("com.github.altriv.paymentclient")
+    apiPackage.set("com.github.altriv.paymentclient.api")
+    configOptions.set([
+            hideGenerationTimestamp: "true",
+            library                : "webclient",
+            useJakartaEe           : "true",
+            openApiNullable        : "false",
+            serializableModel      : "true"
+    ])
+}
+
+sourceSets.main.java.srcDir "$projectDir/build/generated/src/main/java"
+
+dependencies {
+    compileOnly 'org.springframework.boot:spring-boot-starter-webflux:3.5.5'
+}
+
+tasks.named('compileJava') {
+    dependsOn(tasks.buildClient)
+}

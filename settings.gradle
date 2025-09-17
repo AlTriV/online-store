@@ -1,4 +1,5 @@
 rootProject.name = 'online-store'
 
+include 'payment-client-starter'
 include 'store-service'
 include 'payment-service'

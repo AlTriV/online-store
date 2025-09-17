@@ -1,29 +1,10 @@
 plugins {
-    id 'java'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.openapi.generator' version '7.15.0'
 }
 
-group = 'com.github.altriv'
-version = '0.0.1-SNAPSHOT'
 description = 'payment-service'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
-repositories {
-    mavenCentral()
-}
 
 openApiGenerate {
     generatorName.set("spring")
@@ -34,16 +15,16 @@ openApiGenerate {
     apiPackage.set("com.github.altriv.paymentservice.api")
     configOptions.set([
             hideGenerationTimestamp: "true",
-            requestMappingMode: "controller",
-            interfaceOnly: "true",
-            library: "spring-boot",
-            reactive: "true",
-            useSpringBoot3: "true",
-            useJakartaEe: "true",
-            dateLibrary: "java8",
-            openApiNullable: "false",
-            serializableModel: "true",
-            returnSuccessCode: "true"
+            requestMappingMode     : "controller",
+            interfaceOnly          : "true",
+            library                : "spring-boot",
+            reactive               : "true",
+            useSpringBoot3         : "true",
+            useJakartaEe           : "true",
+            dateLibrary            : "java8",
+            openApiNullable        : "false",
+            serializableModel      : "true",
+            returnSuccessCode      : "true"
     ])
 }
 
