@@ -74,7 +74,7 @@ class OrderServiceImplTest {
     void shouldThrowNPEWhenCartIsNull() {
         assertThrows(
                 NullPointerException.class,
-                () -> orderService.saveCartAsNotPaidOrder(null).subscribe()
+                () -> orderService.saveCartAsNotPaidOrder(null).block()
         );
     }
 
@@ -86,10 +86,11 @@ class OrderServiceImplTest {
         Cart cart = new Cart(List.of(item, item2));
         OrderEntity expectedOrderEntity = new OrderEntity(1L, false, cart.getItems());
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.just(orderEntity));
+        when(orderRepository.save(eq(expectedOrderEntity))).thenReturn(Mono.just(expectedOrderEntity));
         when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        orderService.saveCartAsNotPaidOrder(cart).subscribe();
+        orderService.saveCartAsNotPaidOrder(cart).block();
 
         verify(orderRepository, times(1)).findFirstByPaidIsFalse();
         verify(orderRepository, times(1)).save(eq(expectedOrderEntity));
@@ -102,10 +103,11 @@ class OrderServiceImplTest {
         Cart cart = new Cart(List.of(item, item2));
         OrderEntity expectedOrderEntity = new OrderEntity(null, false, cart.getItems());
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.empty());
+        when(orderRepository.save(eq(expectedOrderEntity))).thenReturn(Mono.just(expectedOrderEntity));
         when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        orderService.saveCartAsNotPaidOrder(cart).subscribe();
+        orderService.saveCartAsNotPaidOrder(cart).block();
 
         verify(orderRepository, times(1)).findFirstByPaidIsFalse();
         verify(orderRepository, times(1)).save(eq(expectedOrderEntity));
@@ -172,7 +174,7 @@ class OrderServiceImplTest {
         when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        orderService.buyItemsInCart()
+        orderService.saveCartAsPaidOrder()
                 .doOnNext(Assertions::assertNull)
                 .block();
 
@@ -189,15 +191,16 @@ class OrderServiceImplTest {
         Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
 
         when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.just(orderEntity));
+        when(orderRepository.save(eq(paidOrderEntity))).thenReturn(Mono.just(paidOrderEntity));
         when(transactionalOperator.transactional(ArgumentMatchers.<Mono<OrderEntity>>any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        orderService.buyItemsInCart()
+        orderService.saveCartAsPaidOrder()
                 .doOnNext(order -> {
                     assertNotNull(order);
                     assertEquals(expectedOrder, order);
                 })
-                .subscribe();
+                .block();
 
         verify(orderRepository, times(1)).findFirstByPaidIsFalse();
         verify(orderRepository, times(1)).save(paidOrderEntity);

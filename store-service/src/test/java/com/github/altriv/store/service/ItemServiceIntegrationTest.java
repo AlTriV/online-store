@@ -1,5 +1,6 @@
 package com.github.altriv.store.service;
 
+import com.github.altriv.paymentclient.PaymentClient;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -25,8 +28,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@MockitoBean(types = PaymentClient.class)
+@TestPropertySource(properties = "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration")
 public class ItemServiceIntegrationTest {
 
     @Container

@@ -1,5 +1,6 @@
 package com.github.altriv.store.controller;
 
+import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class CartController {
         log.info("Request to get all items in cart");
         return storeService.getCart()
                 .doOnNext(cart -> {
+                    model.addAttribute("errorMessage", null);
                     model.addAttribute("items", cart.getItems());
                     model.addAttribute("total", cart.getTotalPrice());
                     model.addAttribute("empty", cart.isEmpty());
@@ -41,6 +43,25 @@ public class CartController {
         log.info("Request to change item count in cart from cart page. Params: itemId= {}, action= {}", itemId, action);
         return storeService.changeItemCountInCart(itemId, ItemAction.valueOf(action))
                 .then(Mono.just("redirect:/cart/items"));
+    }
+
+    @PostMapping("/buy")
+    public Mono<String> buyItems(Model model) {
+        log.info("Request to buy items in cart");
+        return storeService.buyItemsInCart()
+                .map(purchase -> {
+                    if (purchase.isSuccess()) {
+                        return String.format("redirect:/orders/%d?newOrder=true", purchase.getPaidOrder().id());
+                    } else {
+                        log.info("Purchase failed. Return cart page");
+                        Cart cart = purchase.getCart();
+                        model.addAttribute("errorMessage", purchase.getErrorMessage());
+                        model.addAttribute("items", cart.getItems());
+                        model.addAttribute("total", cart.getTotalPrice());
+                        model.addAttribute("empty", cart.isEmpty());
+                        return "cart";
+                    }
+                });
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

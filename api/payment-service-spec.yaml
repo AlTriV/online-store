@@ -34,7 +34,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PurchaseRq'
+              $ref: '#/components/schemas/PurchaseRequest'
         required: true
       responses:
         '200':
@@ -42,7 +42,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PurchaseRs'
+                $ref: '#/components/schemas/PurchaseResponse'
         '400':
           description: Invalid input
 components:
@@ -56,7 +56,7 @@ components:
           format: int64
           description: Balance value
           example: 100000
-    PurchaseRq:
+    PurchaseRequest:
       required:
         - requestId
         - price
@@ -72,7 +72,7 @@ components:
           format: int64
           description: Order total price
           example: 1200
-    PurchaseRs:
+    PurchaseResponse:
       required:
         - requestId
         - purchaseResult

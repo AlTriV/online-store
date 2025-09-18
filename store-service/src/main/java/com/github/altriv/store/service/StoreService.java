@@ -5,7 +5,7 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
-import com.github.altriv.store.model.Order;
+import com.github.altriv.store.model.Purchase;
 import lombok.NonNull;
 import reactor.core.publisher.Mono;
 
@@ -19,5 +19,5 @@ public interface StoreService {
 
     Mono<Item> getItemWithCartCount(long itemId);
 
-    Mono<Order> buyItemsInCart();
+    Mono<Purchase> buyItemsInCart();
 }

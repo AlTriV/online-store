@@ -1,5 +1,8 @@
 package com.github.altriv.store.service;
 
+import com.github.altriv.paymentclient.PaymentClient;
+import com.github.altriv.paymentclient.domain.PurchaseRequest;
+import com.github.altriv.paymentclient.domain.PurchaseResponse;
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
@@ -16,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,9 +29,11 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.UUID;
 
+import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,6 +49,9 @@ class StoreServiceImplTest {
 
     @MockitoBean
     private OrderService orderService;
+
+    @MockitoBean
+    private PaymentClient paymentClient;
 
     @MockitoBean
     private TransactionalOperator transactionalOperator;
@@ -194,29 +203,106 @@ class StoreServiceImplTest {
     class BuyItemsInCart {
 
         @Test
-        void shouldReturnEmptyIfServiceReturnEmpty() {
-            when(orderService.buyItemsInCart()).thenReturn(Mono.empty());
+        void shouldReturnFailedPurchaseIfPaymentServiceNotAvailable() {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(UUID.randomUUID()).price((long) cart.getTotalPrice());
+            PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
+            when(paymentClient.purchase(argThat(purchaseRequestMatcher)))
+                    .thenReturn(Mono.error(new RuntimeException("Payment service down")));
 
             storeService.buyItemsInCart()
-                    .doOnNext(Assertions::assertNull)
+                    .doOnNext(purchase -> {
+                        assertNotNull(purchase);
+                        assertFalse(purchase.isSuccess());
+                        assertEquals(cart, purchase.getCart());
+                        assertEquals("Сервис оплаты недоступен. Попробуйте оплатить позже", purchase.getErrorMessage());
+                        assertNull(purchase.getPaidOrder());
+                    })
                     .block();
-            verify(orderService, times(1)).buyItemsInCart();
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(paymentClient, times(1)).purchase(argThat(purchaseRequestMatcher));
+            verifyNoMoreInteractions(orderService);
         }
 
         @Test
-        void shouldReturnPaidOrder() {
-            Item item1 = mock(Item.class);
-            Item item2 = mock(Item.class);
-            Order order = new Order(1L, List.of(item1, item2));
-            when(orderService.buyItemsInCart()).thenReturn(Mono.just(order));
+        void shouldReturnFailedPurchaseIfPaymentUnsuccessful() {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+            UUID requestUuid = UUID.randomUUID();
+            String errorMessage = "Недостаточно средств";
+            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(requestUuid).price((long) cart.getTotalPrice());
+            PurchaseResponse purchaseResponse = new PurchaseResponse().purchaseResult(false).requestId(requestUuid).errorMessage(errorMessage);
+
+            PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
+            when(paymentClient.purchase(argThat(purchaseRequestMatcher))).thenReturn(Mono.just(purchaseResponse));
+
 
             storeService.buyItemsInCart()
-                    .doOnNext(paidOrder -> {
-                        assertNotNull(paidOrder);
-                        assertEquals(order, paidOrder);
+                    .doOnNext(purchase -> {
+                        assertNotNull(purchase);
+                        assertFalse(purchase.isSuccess());
+                        assertEquals(cart, purchase.getCart());
+                        assertEquals(errorMessage, purchase.getErrorMessage());
+                        assertNull(purchase.getPaidOrder());
                     })
                     .block();
-            verify(orderService, times(1)).buyItemsInCart();
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(paymentClient, times(1)).purchase(argThat(purchaseRequestMatcher));
+            verifyNoMoreInteractions(orderService);
+        }
+
+        @Test
+        void shouldReturnSuccessPurchaseIfPaymentSuccess() {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+            Order paidOrder = new Order(1L, List.of(item, item2));
+            UUID requestUuid = UUID.randomUUID();
+            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(requestUuid).price((long) cart.getTotalPrice());
+            PurchaseResponse purchaseResponse = new PurchaseResponse().purchaseResult(true).requestId(requestUuid);
+
+            PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
+            when(paymentClient.purchase(argThat(purchaseRequestMatcher))).thenReturn(Mono.just(purchaseResponse));
+            when(orderService.saveCartAsPaidOrder()).thenReturn(Mono.just(paidOrder));
+
+            storeService.buyItemsInCart()
+                    .doOnNext(purchase -> {
+                        assertNotNull(purchase);
+                        assertTrue(purchase.isSuccess());
+                        assertEquals(cart, purchase.getCart());
+                        assertEquals(paidOrder, purchase.getPaidOrder());
+                        assertNull(purchase.getErrorMessage());
+                    })
+                    .block();
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(paymentClient, times(1)).purchase(argThat(purchaseRequestMatcher));
+            verify(orderService, times(1)).saveCartAsPaidOrder();
+        }
+    }
+
+    record PurchaseRequestMatcher(PurchaseRequest baseRequest) implements ArgumentMatcher<PurchaseRequest> {
+        @Override
+        public boolean matches(PurchaseRequest argumentRequest) {
+            if (isNull(baseRequest)) {
+                return isNull(argumentRequest);
+            }
+            if (isNull(argumentRequest)) {
+                return false;
+            }
+            return baseRequest.getPrice().equals(argumentRequest.getPrice());
+        }
+
+        static PurchaseRequestMatcher matcherFor(PurchaseRequest purchaseRequest) {
+            return new PurchaseRequestMatcher(purchaseRequest);
         }
     }
 }

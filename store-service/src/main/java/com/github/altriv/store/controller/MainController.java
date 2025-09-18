@@ -55,14 +55,6 @@ public class MainController {
                 .then(Mono.just("redirect:/main/items"));
     }
 
-    @PostMapping("/buy")
-    public Mono<String> buyItems() {
-        log.info("Request to buy items in cart");
-        return storeService.buyItemsInCart()
-                .map(order -> String.format("redirect:/orders/%d?newOrder=true", order.id()))
-                .defaultIfEmpty("redirect:/main/items");
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public Mono<ResponseEntity<String>> handleCustomException(IllegalArgumentException ex) {
         return Mono.just(ResponseEntity.badRequest().body(ex.getMessage()));

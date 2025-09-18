@@ -3,8 +3,8 @@ package com.github.altriv.paymentservice.service;
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
 import com.github.altriv.paymentservice.controller.AddCreditsRs;
 import com.github.altriv.paymentservice.domain.BalanceRs;
-import com.github.altriv.paymentservice.domain.PurchaseRq;
-import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.PurchaseRequest;
+import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.entity.Wallet;
 import com.github.altriv.paymentservice.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Mono<PurchaseRs> purchase(PurchaseRq purchaseRq) {
+    public Mono<PurchaseResponse> purchase(PurchaseRequest purchaseRq) {
         return findWallet()
                 .filter(Objects::nonNull)
                 .filter(wallet -> wallet.getBalance() >= purchaseRq.getPrice())
@@ -49,11 +49,11 @@ public class PaymentServiceImpl implements PaymentService {
                     wallet.setBalance(wallet.getBalance() - purchaseRq.getPrice());
                     return walletRepository.save(wallet);
                 })
-                .map(wallet -> new PurchaseRs().purchaseResult(true).requestId(purchaseRq.getRequestId()))
-                .defaultIfEmpty(new PurchaseRs()
+                .map(wallet -> new PurchaseResponse().purchaseResult(true).requestId(purchaseRq.getRequestId()))
+                .defaultIfEmpty(new PurchaseResponse()
                         .purchaseResult(false)
                         .requestId(purchaseRq.getRequestId())
-                        .errorMessage("Have no enough credits")
+                        .errorMessage("Недостаточно средств для оплаты")
                 );
     }
 

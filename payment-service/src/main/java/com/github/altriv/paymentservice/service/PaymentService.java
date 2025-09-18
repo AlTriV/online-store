@@ -3,8 +3,8 @@ package com.github.altriv.paymentservice.service;
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
 import com.github.altriv.paymentservice.controller.AddCreditsRs;
 import com.github.altriv.paymentservice.domain.BalanceRs;
-import com.github.altriv.paymentservice.domain.PurchaseRq;
-import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.PurchaseRequest;
+import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import reactor.core.publisher.Mono;
 
 public interface PaymentService {
@@ -13,5 +13,5 @@ public interface PaymentService {
 
     Mono<BalanceRs> getBalance();
 
-    Mono<PurchaseRs> purchase(PurchaseRq purchaseRq);
+    Mono<PurchaseResponse> purchase(PurchaseRequest purchaseRq);
 }

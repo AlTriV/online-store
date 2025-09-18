@@ -48,7 +48,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<Order> buyItemsInCart() {
+    public Mono<Order> saveCartAsPaidOrder() {
         return orderRepository.findFirstByPaidIsFalse()
                 .doOnNext(orderEntity -> orderEntity.setPaid(true))
                 .flatMap(orderRepository::save)

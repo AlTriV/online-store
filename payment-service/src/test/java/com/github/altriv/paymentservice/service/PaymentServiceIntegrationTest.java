@@ -1,7 +1,7 @@
 package com.github.altriv.paymentservice.service;
 
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
-import com.github.altriv.paymentservice.domain.PurchaseRq;
+import com.github.altriv.paymentservice.domain.PurchaseRequest;
 import com.github.altriv.paymentservice.entity.Wallet;
 import com.github.altriv.paymentservice.repository.WalletRepository;
 import org.junit.jupiter.api.Assertions;
@@ -86,14 +86,14 @@ class PaymentServiceIntegrationTest {
         @Test
         void shouldReturnUnsuccessPurchaseIfWalletNotFound() {
             UUID requestId = UUID.randomUUID();
-            PurchaseRq purchaseRq = new PurchaseRq(requestId, 500L);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L);
 
             paymentService.purchase(purchaseRq)
                     .doOnNext(purchaseRs -> {
                         assertNotNull(purchaseRs);
                         assertEquals(requestId, purchaseRs.getRequestId());
                         assertFalse(purchaseRs.getPurchaseResult());
-                        assertEquals("Have no enough credits", purchaseRs.getErrorMessage());
+                        assertEquals("Недостаточно средств для оплаты", purchaseRs.getErrorMessage());
                     })
                     .block();
         }
@@ -102,7 +102,7 @@ class PaymentServiceIntegrationTest {
         @ValueSource(longs = {499L, 100L, 250L})
         void shouldReturnUnsuccessPurchaseIfHaveNoCredits(long balance) {
             UUID requestId = UUID.randomUUID();
-            PurchaseRq purchaseRq = new PurchaseRq(requestId, 500L);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L);
             walletRepository.save(new Wallet(null, balance)).block();
 
             paymentService.purchase(purchaseRq)
@@ -110,7 +110,7 @@ class PaymentServiceIntegrationTest {
                         assertNotNull(purchaseRs);
                         assertEquals(requestId, purchaseRs.getRequestId());
                         assertFalse(purchaseRs.getPurchaseResult());
-                        assertEquals("Have no enough credits", purchaseRs.getErrorMessage());
+                        assertEquals("Недостаточно средств для оплаты", purchaseRs.getErrorMessage());
                     })
                     .block();
         }
@@ -120,7 +120,7 @@ class PaymentServiceIntegrationTest {
         void shouldReturnSuccessPurchaseIfHaveEnoughCredits(long balance) {
             long price = 500L;
             UUID requestId = UUID.randomUUID();
-            PurchaseRq purchaseRq = new PurchaseRq(requestId, price);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, price);
             walletRepository.save(new Wallet(null, balance)).block();
 
             paymentService.purchase(purchaseRq)

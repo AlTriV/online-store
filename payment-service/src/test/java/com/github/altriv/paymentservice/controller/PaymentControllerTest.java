@@ -1,8 +1,8 @@
 package com.github.altriv.paymentservice.controller;
 
 import com.github.altriv.paymentservice.domain.BalanceRs;
-import com.github.altriv.paymentservice.domain.PurchaseRq;
-import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.PurchaseRequest;
+import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -77,8 +77,8 @@ class PaymentControllerTest {
         })
         void shouldCompletePurchase(boolean purchaseResult, String errorMessage) {
             UUID requestId = UUID.randomUUID();
-            PurchaseRq purchaseRq = new PurchaseRq(requestId, 100L);
-            PurchaseRs expectedPurchase = new PurchaseRs(requestId, purchaseResult).errorMessage(errorMessage);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 100L);
+            PurchaseResponse expectedPurchase = new PurchaseResponse(requestId, purchaseResult).errorMessage(errorMessage);
             when(paymentService.purchase(purchaseRq)).thenReturn(Mono.just(expectedPurchase));
 
             String url = "/pay";
@@ -88,7 +88,7 @@ class PaymentControllerTest {
                     .bodyValue(purchaseRq)
                     .exchange()
                     .expectStatus().isOk()
-                    .expectBody(PurchaseRs.class).isEqualTo(expectedPurchase);
+                    .expectBody(PurchaseResponse.class).isEqualTo(expectedPurchase);
             verify(paymentService, times(1)).purchase(purchaseRq);
         }
 

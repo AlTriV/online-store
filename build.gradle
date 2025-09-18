@@ -42,5 +42,14 @@ subprojects {
             csv.required = false
             html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
         }
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/config/*',
+                    '**/com/github/altriv/store/OnlineStoreApplication.class',
+                    '**/com/github/altriv/paymentservice/PaymentServiceApplication.class',
+                    '**/com/github/altriv/paymentservice/domain/*',
+                    '**/com/github/altriv/paymentservice/api/*'
+            ])
+        }))
     }
 }

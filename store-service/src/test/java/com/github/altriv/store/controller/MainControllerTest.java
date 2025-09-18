@@ -4,7 +4,6 @@ import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
-import com.github.altriv.store.model.Order;
 import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.service.StoreService;
 import org.junit.jupiter.api.Nested;
@@ -189,41 +188,6 @@ class MainControllerTest {
                     .expectStatus().is4xxClientError();
 
             verifyNoInteractions(storeService);
-        }
-    }
-
-    @Nested
-    class BuyItems {
-
-        @Test
-        void shouldRedirectToMainPage() {
-            String url = "/buy";
-
-            when(storeService.buyItemsInCart()).thenReturn(Mono.empty());
-
-            webTestClient.post().uri(url)
-                    .exchange()
-                    .expectStatus().is3xxRedirection()
-                    .expectHeader().valueEquals(HttpHeaders.LOCATION, "/main/items");
-
-            verify(storeService, times(1)).buyItemsInCart();
-        }
-
-        @Test
-        void shouldReturnPaidOrderPage() {
-            String url = "/buy";
-            long orderId = 1L;
-            Order order = new Order(orderId, List.of());
-            String expectedRedirectUrl = "/orders/" + orderId + "?newOrder=true";
-
-            when(storeService.buyItemsInCart()).thenReturn(Mono.just(order));
-
-            webTestClient.post().uri(url)
-                    .exchange()
-                    .expectStatus().is3xxRedirection()
-                    .expectHeader().valueEquals(HttpHeaders.LOCATION, expectedRedirectUrl);
-
-            verify(storeService, times(1)).buyItemsInCart();
         }
     }
 

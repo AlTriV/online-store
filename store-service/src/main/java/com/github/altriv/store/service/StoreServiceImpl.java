@@ -1,11 +1,12 @@
 package com.github.altriv.store.service;
 
+import com.github.altriv.paymentclient.PaymentClient;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.ItemsPage;
-import com.github.altriv.store.model.Order;
+import com.github.altriv.store.model.Purchase;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class StoreServiceImpl implements StoreService {
     private final ItemService itemService;
     private final OrderService orderService;
     private final TransactionalOperator transactionalOperator;
+    private final PaymentClient paymentClient;
 
     @Override
     public Mono<ItemsPage> searchItems(@NonNull String search,
@@ -68,8 +70,21 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public Mono<Order> buyItemsInCart() {
-        return orderService.buyItemsInCart();
+    public Mono<Purchase> buyItemsInCart() {
+        return orderService.getNotPaidOrderAsCart()
+                .map(cart -> Purchase.builder().cart(cart).build())
+                .flatMap(purchase -> paymentClient.purchase(purchase.generatePurchaseRequest())
+                        .onErrorComplete()
+                        .map(purchase::processPurchaseResponse)
+                        .defaultIfEmpty(purchase.addErrorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже"))
+                )
+                .flatMap(purchase -> {
+                    if (purchase.isSuccess()) {
+                        return orderService.saveCartAsPaidOrder().map(purchase::addPaidOrder);
+                    } else {
+                        return Mono.just(purchase);
+                    }
+                });
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {

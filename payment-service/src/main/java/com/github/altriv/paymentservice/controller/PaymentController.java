@@ -3,8 +3,8 @@ package com.github.altriv.paymentservice.controller;
 import com.github.altriv.paymentservice.api.BalanceApi;
 import com.github.altriv.paymentservice.api.PayApi;
 import com.github.altriv.paymentservice.domain.BalanceRs;
-import com.github.altriv.paymentservice.domain.PurchaseRq;
-import com.github.altriv.paymentservice.domain.PurchaseRs;
+import com.github.altriv.paymentservice.domain.PurchaseRequest;
+import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class PaymentController implements BalanceApi, PayApi {
     }
 
     @Override
-    public Mono<ResponseEntity<PurchaseRs>> purchase(Mono<PurchaseRq> purchaseRq, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<PurchaseResponse>> purchase(Mono<PurchaseRequest> purchaseRq, ServerWebExchange exchange) {
         log.info("Request to purchase order");
         return purchaseRq.flatMap(paymentService::purchase)
                 .map(ResponseEntity::ok);

@@ -16,5 +16,5 @@ public interface OrderService {
 
     Mono<Order> findPaidOrderById(long orderId);
 
-    Mono<Order> buyItemsInCart();
+    Mono<Order> saveCartAsPaidOrder();
 }

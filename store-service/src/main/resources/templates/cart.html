@@ -13,6 +13,7 @@
 <a href="/store/main/items" style="float:right;">
     <b>ГЛАВНАЯ &cudarrr;</b>
 </a>
+<h1 style="text-align:center" th:if="${not #strings.isEmpty(errorMessage)}" th:text="${errorMessage}"></h1>
 <table style="width:70%;margin-left:auto;margin-right:auto;">
     <tr th:each="item : ${items}">
         <td>
@@ -51,7 +52,7 @@
     </tr>
     <tr>
         <td style="text-align:right">
-            <form action="/store/buy" method="post" th:if="${!empty}">
+            <form action="/store/cart/buy" method="post" th:if="${!empty}">
                 <button>Купить</button>
             </form>
         </td>
