@@ -56,3 +56,8 @@ tasks.named('test') {
 tasks.named('compileJava') {
     dependsOn(tasks.openApiGenerate)
 }
+
+bootJar {
+    archiveFileName = "payment-service.jar"
+    launchScript()
+}

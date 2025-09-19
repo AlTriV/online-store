@@ -11,15 +11,35 @@ services:
     ports:
       - "5432:5432"
 
+  payment-app:
+    build:
+      context: ../
+      dockerfile: /payment-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: store_db/store_db
+      DB_SCHEMA: store
+      DB_USER: admin
+      DB_PASS: password
+    depends_on:
+      - store_db
+
   store-app:
     build:
       context: ../
-      dockerfile: ../store-service/Dockerfile
+      dockerfile: /store-service/Dockerfile
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://store_db/store_db?currentSchema=store
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: password
+      DB_URL: store_db/store_db
+      DB_HOST: store_db
+      DB_PORT: 5432
+      DB_DATABASE: store_db
+      DB_SCHEMA: store
+      DB_USER: admin
+      DB_PASS: password
+      PAYMENT_SERVICE_URL: "http://payment-app:8081/payment"
     depends_on:
       - store_db
+      - payment-app
