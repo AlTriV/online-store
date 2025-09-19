@@ -23,7 +23,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BalanceRs'
+                $ref: '#/components/schemas/BalanceResponse'
   /pay:
     post:
       summary: Purchase order
@@ -47,9 +47,11 @@ paths:
           description: Invalid input
 components:
   schemas:
-    BalanceRs:
+    BalanceResponse:
       type: object
       description: Get balance request
+      required:
+        - balance
       properties:
         balance:
           type: integer

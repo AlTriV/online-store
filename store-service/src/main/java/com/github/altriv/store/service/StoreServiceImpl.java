@@ -1,6 +1,7 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.paymentclient.PaymentClient;
+import com.github.altriv.paymentclient.domain.BalanceResponse;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemAction;
@@ -57,7 +58,13 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Mono<Cart> getCart() {
-        return orderService.getNotPaidOrderAsCart();
+        return orderService.getNotPaidOrderAsCart()
+                .flatMap(cart -> paymentClient.getBalance()
+                        .onErrorComplete()
+                        .map(BalanceResponse::getBalance)
+                        .map(cart::putBalance)
+                        .defaultIfEmpty(cart)
+                );
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.paymentclient.PaymentClient;
+import com.github.altriv.paymentclient.domain.BalanceResponse;
 import com.github.altriv.paymentclient.domain.PurchaseRequest;
 import com.github.altriv.paymentclient.domain.PurchaseResponse;
 import com.github.altriv.store.entity.OrderEntity;
@@ -200,7 +201,7 @@ class StoreServiceImplTest {
     }
 
     @Nested
-    class BuyItemsInCart {
+    class BuyItemsInCartTest {
 
         @Test
         void shouldReturnFailedPurchaseIfPaymentServiceNotAvailable() {
@@ -286,6 +287,56 @@ class StoreServiceImplTest {
             verify(orderService, times(1)).getNotPaidOrderAsCart();
             verify(paymentClient, times(1)).purchase(argThat(purchaseRequestMatcher));
             verify(orderService, times(1)).saveCartAsPaidOrder();
+        }
+    }
+
+    @Nested
+    class GetCartTets {
+
+        @Test
+        void shouldReturnCartWithBalance() {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
+            when(paymentClient.getBalance()).thenReturn(Mono.error(new RuntimeException("Payment service down")));
+
+            storeService.getCart()
+                    .doOnNext(resultCart -> {
+                        assertNotNull(resultCart);
+                        assertEquals(2, cart.getItems().size());
+                        assertTrue(cart.getItems().containsAll(List.of(item, item2)));
+                        assertFalse(cart.isPossibleToPayForCart());
+                        assertNotNull(cart.getPaymentUnavailableReason());
+                        assertEquals("Нет информации о балансе, возможность оплаты временно недоступна", cart.getPaymentUnavailableReason());
+                    })
+                    .block();
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(paymentClient, times(1)).getBalance();
+        }
+
+        @Test
+        void shouldReturnCartWithoutBalance() {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+            BalanceResponse balanceResponse = new BalanceResponse().balance(12345L);
+
+            when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
+            when(paymentClient.getBalance()).thenReturn(Mono.just(balanceResponse));
+
+            storeService.getCart()
+                    .doOnNext(resultCart -> {
+                        assertNotNull(resultCart);
+                        assertEquals(2, cart.getItems().size());
+                        assertTrue(cart.getItems().containsAll(List.of(item, item2)));
+                        assertTrue(cart.isPossibleToPayForCart());
+                        assertNull(cart.getPaymentUnavailableReason());
+                    })
+                    .block();
+            verify(orderService, times(1)).getNotPaidOrderAsCart();
+            verify(paymentClient, times(1)).getBalance();
         }
     }
 

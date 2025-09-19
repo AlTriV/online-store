@@ -41,10 +41,11 @@ class CartControllerTest {
     class CartItemsTest {
 
         @Test
-        void shouldReturnNotEmptyCartPage() {
+        void shouldReturnNotEmptyCartPageWithPurchaseButton() {
             Item item = new Item(1L, "title", "description", 1000, 2);
             Item item2 = new Item(2L, "title2", "description2", 2000, 1);
             Cart cart = new Cart(List.of(item, item2));
+            cart.putBalance(4000L);
 
             String url = "/cart/items";
 
@@ -77,6 +78,53 @@ class CartControllerTest {
 
                         assertTrue(body.contains("<b>Итого: 4000 руб.</b>"));
                         assertTrue(body.contains("<button>Купить</button>"));
+                    });
+
+            verify(storeService, times(1)).getCart();
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+                "3000, 'Недостаточно средств для оплаты'",
+                ", 'Нет информации о балансе, возможность оплаты временно недоступна'"
+        })
+        void shouldReturnNotEmptyCartPageWithoutPurchaseButton(Long balance, String expectedErrorMessage) {
+            Item item = new Item(1L, "title", "description", 1000, 2);
+            Item item2 = new Item(2L, "title2", "description2", 2000, 1);
+            Cart cart = new Cart(List.of(item, item2));
+            cart.putBalance(balance);
+
+            String url = "/cart/items";
+
+            when(storeService.getCart()).thenReturn(Mono.just(cart));
+
+            webTestClient.get().uri(url)
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectHeader().valueEquals(HttpHeaders.CONTENT_TYPE, "text/html")
+                    .expectBody(String.class)
+                    .consumeWith(result -> {
+                        String body = result.getResponseBody();
+                        assertNotNull(body);
+
+                        assertTrue(body.contains("<h1 style=\"text-align:center\">" + expectedErrorMessage + "</h1>"));
+
+                        assertTrue(body.contains("<title>Корзина товаров</title>"));
+
+                        assertTrue(body.contains("<img width=\"300\" height=\"300\" src=\"http://localhost:8080/store/items/1/image\">"));
+                        assertTrue(body.contains("<b>title</b>"));
+                        assertTrue(body.contains("<b>1000 руб.</b>"));
+                        assertTrue(body.contains("<tr><td>description</td></tr>"));
+                        assertTrue(body.contains("<span>2</span>"));
+
+                        assertTrue(body.contains("<img width=\"300\" height=\"300\" src=\"http://localhost:8080/store/items/2/image\">"));
+                        assertTrue(body.contains("<b>title2</b>"));
+                        assertTrue(body.contains("<b>2000 руб.</b>"));
+                        assertTrue(body.contains("<tr><td>description2</td></tr>"));
+                        assertTrue(body.contains("<span>1</span>"));
+
+                        assertTrue(body.contains("<b>Итого: 4000 руб.</b>"));
+                        assertFalse(body.contains("<button>Купить</button>"));
                     });
 
             verify(storeService, times(1)).getCart();
@@ -200,7 +248,7 @@ class CartControllerTest {
                         assertTrue(body.contains("<span>1</span>"));
 
                         assertTrue(body.contains("<b>Итого: 4000 руб.</b>"));
-                        assertTrue(body.contains("<button>Купить</button>"));
+                        assertFalse(body.contains("<button>Купить</button>"));
                     });
 
             verify(storeService, times(1)).buyItemsInCart();

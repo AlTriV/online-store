@@ -1,6 +1,6 @@
 package com.github.altriv.paymentservice.controller;
 
-import com.github.altriv.paymentservice.domain.BalanceRs;
+import com.github.altriv.paymentservice.domain.BalanceResponse;
 import com.github.altriv.paymentservice.domain.PurchaseRequest;
 import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.service.PaymentService;
@@ -39,7 +39,7 @@ class PaymentControllerTest {
         void shouldReturnBalance() {
             long balanceAmount = 1234L;
             String url = "/balance";
-            BalanceRs expectedBalance = new BalanceRs().balance(balanceAmount);
+            BalanceResponse expectedBalance = new BalanceResponse().balance(balanceAmount);
 
 
             when(paymentService.getBalance()).thenReturn(Mono.just(expectedBalance));
@@ -47,14 +47,14 @@ class PaymentControllerTest {
             webTestClient.get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
-                    .expectBody(BalanceRs.class).isEqualTo(expectedBalance);
+                    .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
             verify(paymentService, times(1)).getBalance();
         }
 
         @Test
         void shouldReturnEmptyBalanceIfNotFound() {
             String url = "/balance";
-            BalanceRs expectedBalance = new BalanceRs().balance(0L);
+            BalanceResponse expectedBalance = new BalanceResponse().balance(0L);
 
 
             when(paymentService.getBalance()).thenReturn(Mono.empty());
@@ -62,7 +62,7 @@ class PaymentControllerTest {
             webTestClient.get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
-                    .expectBody(BalanceRs.class).isEqualTo(expectedBalance);
+                    .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
             verify(paymentService, times(1)).getBalance();
         }
     }

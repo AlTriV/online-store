@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 
 public class Cart {
 
+    private Long currentBalance;
     private final Map<Long, Item> items;
 
     private Cart() {
@@ -67,6 +69,29 @@ public class Cart {
             totalPrice = totalPrice + item.getPrice() * item.getCount();
         }
         return totalPrice;
+    }
+
+    public Cart putBalance(Long balance) {
+        this.currentBalance = balance;
+        return this;
+    }
+
+    public boolean isPossibleToPayForCart() {
+        if (isNull(currentBalance)) {
+            return false;
+        } else {
+            return currentBalance >= getTotalPrice();
+        }
+    }
+
+    public String getPaymentUnavailableReason() {
+        if (isNull(currentBalance)) {
+            return "Нет информации о балансе, возможность оплаты временно недоступна";
+        } else if (currentBalance < getTotalPrice()) {
+            return "Недостаточно средств для оплаты";
+        } else {
+            return null;
+        }
     }
 
     public boolean isEmpty() {

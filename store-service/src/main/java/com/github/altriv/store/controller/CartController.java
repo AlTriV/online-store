@@ -29,10 +29,10 @@ public class CartController {
         log.info("Request to get all items in cart");
         return storeService.getCart()
                 .doOnNext(cart -> {
-                    model.addAttribute("errorMessage", null);
+                    model.addAttribute("errorMessage", cart.getPaymentUnavailableReason());
                     model.addAttribute("items", cart.getItems());
                     model.addAttribute("total", cart.getTotalPrice());
-                    model.addAttribute("empty", cart.isEmpty());
+                    model.addAttribute("canPurchase", !cart.isEmpty() && cart.isPossibleToPayForCart());
                 })
                 .map(cart -> "cart");
     }
@@ -58,7 +58,7 @@ public class CartController {
                         model.addAttribute("errorMessage", purchase.getErrorMessage());
                         model.addAttribute("items", cart.getItems());
                         model.addAttribute("total", cart.getTotalPrice());
-                        model.addAttribute("empty", cart.isEmpty());
+                        model.addAttribute("canPurchase", false);
                         return "cart";
                     }
                 });

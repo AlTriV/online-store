@@ -2,7 +2,7 @@ package com.github.altriv.paymentservice.controller;
 
 import com.github.altriv.paymentservice.api.BalanceApi;
 import com.github.altriv.paymentservice.api.PayApi;
-import com.github.altriv.paymentservice.domain.BalanceRs;
+import com.github.altriv.paymentservice.domain.BalanceResponse;
 import com.github.altriv.paymentservice.domain.PurchaseRequest;
 import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.service.PaymentService;
@@ -24,10 +24,10 @@ public class PaymentController implements BalanceApi, PayApi {
     private final PaymentService paymentService;
 
     @Override
-    public Mono<ResponseEntity<BalanceRs>> getBalance(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BalanceResponse>> getBalance(ServerWebExchange exchange) {
         log.info("Request to get balance");
         return paymentService.getBalance()
-                .defaultIfEmpty(new BalanceRs().balance(0L))
+                .defaultIfEmpty(new BalanceResponse().balance(0L))
                 .map(ResponseEntity::ok);
     }
 

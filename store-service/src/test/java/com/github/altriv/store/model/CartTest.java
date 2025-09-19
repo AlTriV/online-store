@@ -2,6 +2,7 @@ package com.github.altriv.store.model;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
@@ -197,6 +198,60 @@ class CartTest {
         Cart cart = Cart.empty();
 
         assertEquals(0, cart.getTotalPrice());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(longs = {0, 100, 199})
+    void shouldReturnFalseIfPaymentNotPossible(Long balance) {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 200, 0);
+        cart.addItem(item);
+
+        cart.putBalance(balance);
+
+        assertFalse(cart.isPossibleToPayForCart());
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {200, 210, 300})
+    void shouldReturnTrueIfPaymentPossible(Long balance) {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 200, 0);
+        cart.addItem(item);
+
+        cart.putBalance(balance);
+
+        assertTrue(cart.isPossibleToPayForCart());
+    }
+
+    @Test
+    void shouldReturnCreditsNotEnoughReason() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 200, 0);
+        cart.addItem(item);
+        cart.putBalance(199L);
+
+        assertEquals("Недостаточно средств для оплаты", cart.getPaymentUnavailableReason());
+    }
+
+    @Test
+    void shouldReturnServiceUnavailableReason() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 200, 0);
+        cart.addItem(item);
+
+        assertEquals("Нет информации о балансе, возможность оплаты временно недоступна", cart.getPaymentUnavailableReason());
+    }
+
+    @Test
+    void shouldNotReturnReasonIfPaymentPossible() {
+        Cart cart = Cart.empty();
+        Item item = new Item(1L, "title", "description", 200, 0);
+        cart.addItem(item);
+        cart.putBalance(200L);
+
+        assertNull(cart.getPaymentUnavailableReason());
     }
 
 }

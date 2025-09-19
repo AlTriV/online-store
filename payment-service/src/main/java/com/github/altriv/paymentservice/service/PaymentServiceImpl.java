@@ -2,7 +2,7 @@ package com.github.altriv.paymentservice.service;
 
 import com.github.altriv.paymentservice.controller.AddCreditsRq;
 import com.github.altriv.paymentservice.controller.AddCreditsRs;
-import com.github.altriv.paymentservice.domain.BalanceRs;
+import com.github.altriv.paymentservice.domain.BalanceResponse;
 import com.github.altriv.paymentservice.domain.PurchaseRequest;
 import com.github.altriv.paymentservice.domain.PurchaseResponse;
 import com.github.altriv.paymentservice.entity.Wallet;
@@ -35,9 +35,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Mono<BalanceRs> getBalance() {
+    public Mono<BalanceResponse> getBalance() {
         return findWallet()
-                .map(wallet -> new BalanceRs().balance(wallet.getBalance()));
+                .map(wallet -> new BalanceResponse().balance(wallet.getBalance()));
     }
 
     @Override
