@@ -1,5 +1,6 @@
 package com.github.altriv.store.service;
 
+import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
@@ -11,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -21,6 +24,8 @@ import java.util.List;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
+    private final ReactiveRedisOperations<String, ItemEntity> itemRedisOperations;
+    private final StoreCacheProperties cacheProperties;
 
     @Override
     public Mono<ItemsPage> getItemsPage(@NonNull String search,
@@ -44,15 +49,20 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Mono<Item> getItem(long itemId) {
-        return itemRepository.findById(itemId)
-                .map(this::toItem);
+        return getItemEntity(itemId).map(this::toItem);
     }
 
     @Override
     public Mono<byte[]> getItemImage(long itemId) {
-        return itemRepository.findById(itemId)
-                .map(ItemEntity::getImage)
-                .switchIfEmpty(Mono.just(new byte[0]));
+        return getItemEntity(itemId).map(ItemEntity::getImage).switchIfEmpty(Mono.just(new byte[0]));
+    }
+
+    private Mono<ItemEntity> getItemEntity(long itemId) {
+        String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+        Duration ttl = Duration.parse(cacheProperties.ttl());
+        return itemRedisOperations.opsForValue().get(itemCacheKey)
+                .switchIfEmpty(itemRepository.findById(itemId)
+                        .flatMap(itemEntity -> itemRedisOperations.opsForValue().set(itemCacheKey, itemEntity, ttl).thenReturn(itemEntity)));
     }
 
     @Override

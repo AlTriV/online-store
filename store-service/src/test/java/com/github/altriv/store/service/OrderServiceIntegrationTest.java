@@ -1,17 +1,20 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.paymentclient.PaymentClient;
+import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.Order;
 import com.github.altriv.store.repository.OrderRepository;
+import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -20,6 +23,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,11 +31,19 @@ import static org.junit.jupiter.api.Assertions.*;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @MockitoBean(types = PaymentClient.class)
-@TestPropertySource(properties = "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration")
+@TestPropertySource(properties = {
+        "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration",
+        "store.cache.itemCachePrefix='item:'",
+        "store.cache.orderCachePrefix='order:'",
+        "store.cache.ttl=PT3S"
+})
 class OrderServiceIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17:5");
+
+    @Container
+    static RedisContainer redis = new RedisContainer("redis:8.2.1-bookworm");
 
     @DynamicPropertySource
     static void registerDynamicProperties(DynamicPropertyRegistry registry) {
@@ -45,6 +57,9 @@ class OrderServiceIntegrationTest {
         registry.add("spring.liquibase.url", postgres::getJdbcUrl);
         registry.add("spring.liquibase.user", postgres::getUsername);
         registry.add("spring.liquibase.password", postgres::getPassword);
+
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
     }
 
     @Autowired
@@ -53,9 +68,18 @@ class OrderServiceIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private ReactiveRedisOperations<String, Order> orderReactiveOperations;
+
+    @Autowired
+    private StoreCacheProperties storeCacheProperties;
+
     @BeforeEach
     void setUp() {
         orderRepository.deleteAll().block();
+        orderReactiveOperations.keys(storeCacheProperties.orderCachePrefix() + "*")
+                .flatMap(orderReactiveOperations.opsForValue()::delete)
+                .blockLast();
     }
 
     @Nested
@@ -141,23 +165,33 @@ class OrderServiceIntegrationTest {
     }
 
     @Nested
-    class BuyItemsTest {
+    class SavePaidOrderTest {
 
         @Test
-        void shouldSaveNotPaidOrderAsPaid() {
+        void shouldSaveNotPaidOrderAsPaidAndPutItToCache() {
             Item item = new Item(1L, "item title", "item description", 120, 5);
             Item item2 = new Item(2L, "item2 title", "item2 description", 420, 3);
-            OrderEntity orderEntity = new OrderEntity(null, false, List.of(item, item2));
+            OrderEntity cart = new OrderEntity(null, false, List.of(item, item2));
+            String orderCachePrefix = storeCacheProperties.orderCachePrefix();
 
-            orderRepository.save(orderEntity).block();
+            orderRepository.save(cart).block();
 
             orderService.saveCartAsPaidOrder()
                     .doOnNext(paidOrder -> {
                         assertNotNull(paidOrder);
-                        assertEquals(orderEntity.getId(), paidOrder.id());
+                        assertEquals(cart.getId(), paidOrder.id());
                         assertEquals(2, paidOrder.items().size());
-                        assertTrue(paidOrder.items().containsAll(orderEntity.getItems()));
+                        assertTrue(paidOrder.items().containsAll(cart.getItems()));
                     })
+                    .flatMap(order -> orderReactiveOperations.opsForValue()
+                            .get(orderCachePrefix + order.id())
+                            .doOnNext(orderFromCache -> {
+                                assertNotNull(orderFromCache);
+                                assertEquals(cart.getId(), orderFromCache.id());
+                                assertEquals(2, orderFromCache.items().size());
+                                assertTrue(orderFromCache.items().containsAll(cart.getItems()));
+                            })
+                    )
                     .block();
         }
 
@@ -169,52 +203,107 @@ class OrderServiceIntegrationTest {
         }
     }
 
-    @Test
-    void shouldFindAllPaidOrders() {
-        Item item = new Item(1L, "item title", "item description", 120, 5);
-        Item item2 = new Item(2L, "item2 title", "item2 description", 420, 3);
-        Item item3 = new Item(3L, "item3 title", "item3 description", 1220, 2);
-        OrderEntity orderEntity1 = new OrderEntity(null, true, List.of(item));
-        OrderEntity orderEntity2 = new OrderEntity(null, false, List.of(item2));
-        OrderEntity orderEntity3 = new OrderEntity(null, true, List.of(item3));
+    @Nested
+    class FindAllPaidOrderTest {
 
-        orderRepository.saveAll(List.of(orderEntity1, orderEntity2, orderEntity3)).blockLast();
+        @Test
+        void shouldFindAllFromDatabase() {
+            Item item = new Item(1L, "item title", "item description", 120, 5);
+            Item item2 = new Item(2L, "item2 title", "item2 description", 420, 3);
+            Item item3 = new Item(3L, "item3 title", "item3 description", 1220, 2);
+            OrderEntity orderEntity1 = new OrderEntity(null, true, List.of(item));
+            OrderEntity orderEntity2 = new OrderEntity(null, false, List.of(item2));
+            OrderEntity orderEntity3 = new OrderEntity(null, true, List.of(item3));
 
-        Order expectedOrder1 = new Order(orderEntity1.getId(), orderEntity1.getItems());
-        Order expectedOrder2 = new Order(orderEntity3.getId(), orderEntity3.getItems());
+            orderRepository.saveAll(List.of(orderEntity1, orderEntity2, orderEntity3)).blockLast();
 
-        orderService.getAllPaidOrders()
-                .collectList()
-                .doOnNext(paidOrders -> {
-                    assertNotNull(paidOrders);
-                    assertEquals(2, paidOrders.size());
-                    assertTrue(paidOrders.containsAll(List.of(expectedOrder1, expectedOrder2)));
-                })
-                .block();
+            Order expectedOrder1 = new Order(orderEntity1.getId(), orderEntity1.getItems());
+            Order expectedOrder2 = new Order(orderEntity3.getId(), orderEntity3.getItems());
+
+            orderService.getAllPaidOrders()
+                    .collectList()
+                    .doOnNext(paidOrders -> {
+                        assertNotNull(paidOrders);
+                        assertEquals(2, paidOrders.size());
+                        assertTrue(paidOrders.containsAll(List.of(expectedOrder1, expectedOrder2)));
+                    })
+                    .block();
+        }
+
+        @Test
+        void shouldFindAllFromCache() {
+            Item item = new Item(1L, "item title", "item description", 120, 5);
+            Item item2 = new Item(2L, "item2 title", "item2 description", 420, 3);
+            Item item3 = new Item(3L, "item3 title", "item3 description", 1220, 2);
+            OrderEntity orderEntity1 = new OrderEntity(null, true, List.of(item));
+            OrderEntity orderEntity2 = new OrderEntity(null, false, List.of(item2));
+            OrderEntity orderEntity3 = new OrderEntity(null, true, List.of(item3));
+
+            orderRepository.saveAll(List.of(orderEntity1, orderEntity2, orderEntity3)).blockLast();
+
+            Order expectedOrder1 = new Order(orderEntity1.getId(), orderEntity1.getItems());
+
+            String orderCacheKey = storeCacheProperties.orderCachePrefix() + orderEntity1.getId();
+            orderReactiveOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
+
+            orderService.getAllPaidOrders()
+                    .collectList()
+                    .doOnNext(paidOrders -> {
+                        assertNotNull(paidOrders);
+                        assertEquals(1, paidOrders.size());
+                        assertEquals(expectedOrder1, paidOrders.getFirst());
+                    })
+                    .block();
+        }
+
     }
 
-    @Test
-    void shouldFindPaidOrderById() {
-        Item item = new Item(1L, "item title", "item description", 120, 5);
-        OrderEntity orderEntity = new OrderEntity(null, true, List.of(item));
-        orderRepository.save(orderEntity)
-                .flatMap(saved -> orderService.findPaidOrderById(saved.getId())
-                        .doOnNext(paidOrderById -> {
-                            assertNotNull(paidOrderById);
-                            assertEquals(saved.getId(), paidOrderById.id());
-                            assertEquals(1, paidOrderById.items().size());
-                            assertTrue(paidOrderById.items().contains(item));
-                        }))
-                .block();
-    }
+    @Nested
+    class FindPaidOrderByIdTest {
 
-    @Test
-    void shouldReturnEmptyIfPaidOrderNotFoundById() {
-        Item item = new Item(1L, "item title", "item description", 120, 5);
-        OrderEntity orderEntity1 = new OrderEntity(null, true, List.of(item));
-        orderRepository.save(orderEntity1)
-                .flatMap(saved -> orderService.findPaidOrderById(saved.getId() + 1L).doOnNext(Assertions::assertNull))
-                .block();
+        @Test
+        void shouldFindInDatabase() {
+            Item item = new Item(1L, "item title", "item description", 120, 5);
+            OrderEntity orderEntity = new OrderEntity(null, true, List.of(item));
+            orderRepository.save(orderEntity)
+                    .flatMap(saved -> orderService.findPaidOrderById(saved.getId())
+                            .doOnNext(paidOrderById -> {
+                                assertNotNull(paidOrderById);
+                                assertEquals(saved.getId(), paidOrderById.id());
+                                assertEquals(1, paidOrderById.items().size());
+                                assertTrue(paidOrderById.items().contains(item));
+                            }))
+                    .block();
+        }
+
+        @Test
+        void shouldFindInCache() {
+            Item item = new Item(2L, "item title", "item description", 120, 5);
+
+            long orderId = 1L;
+            Order expectedOrder1 = new Order(orderId, List.of(item));
+
+            String orderCacheKey = storeCacheProperties.orderCachePrefix() + expectedOrder1.id();
+            orderReactiveOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
+
+            orderService.findPaidOrderById(orderId)
+                    .doOnNext(paidOrderById -> {
+                        assertNotNull(paidOrderById);
+                        assertEquals(orderId, paidOrderById.id());
+                        assertEquals(1, paidOrderById.items().size());
+                        assertTrue(paidOrderById.items().contains(item));
+                    })
+                    .block();
+        }
+
+        @Test
+        void shouldReturnEmptyIfPaidOrderNotFoundById() {
+            Item item = new Item(1L, "item title", "item description", 120, 5);
+            OrderEntity orderEntity1 = new OrderEntity(null, true, List.of(item));
+            orderRepository.save(orderEntity1)
+                    .flatMap(saved -> orderService.findPaidOrderById(saved.getId() + 1L).doOnNext(Assertions::assertNull))
+                    .block();
+        }
     }
 
 }

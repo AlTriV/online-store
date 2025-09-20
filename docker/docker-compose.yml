@@ -11,6 +11,12 @@ services:
     ports:
       - "5432:5432"
 
+  redis_cache:
+    image: redis:8.2.1-bookworm
+    ports:
+      - "6379:6379"
+    command: redis-server
+
   payment-app:
     build:
       context: ../

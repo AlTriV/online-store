@@ -1,11 +1,13 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.paymentclient.PaymentClient;
+import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
 import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.repository.ItemRepository;
+import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -31,11 +34,19 @@ import static org.junit.jupiter.api.Assertions.*;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @MockitoBean(types = PaymentClient.class)
-@TestPropertySource(properties = "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration")
+@TestPropertySource(properties = {
+        "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration",
+        "store.cache.itemCachePrefix='item:'",
+        "store.cache.orderCachePrefix='order:'",
+        "store.cache.ttl=PT3S"
+})
 public class ItemServiceIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17:5");
+
+    @Container
+    static RedisContainer redis = new RedisContainer("redis:8.2.1-bookworm");
 
     @DynamicPropertySource
     static void registerDynamicProperties(DynamicPropertyRegistry registry) {
@@ -49,6 +60,9 @@ public class ItemServiceIntegrationTest {
         registry.add("spring.liquibase.url", postgres::getJdbcUrl);
         registry.add("spring.liquibase.user", postgres::getUsername);
         registry.add("spring.liquibase.password", postgres::getPassword);
+
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
     }
 
     @Autowired
@@ -57,9 +71,18 @@ public class ItemServiceIntegrationTest {
     @Autowired
     private ItemRepository itemRepository;
 
+    @Autowired
+    private ReactiveRedisOperations<String, ItemEntity> itemReactiveOperations;
+
+    @Autowired
+    private StoreCacheProperties storeCacheProperties;
+
     @BeforeEach
     void setUp() {
         itemRepository.deleteAll().block();
+        itemReactiveOperations.keys(storeCacheProperties.itemCachePrefix() + "*")
+                .flatMap(itemReactiveOperations.opsForValue()::delete)
+                .blockLast();
     }
 
     @Test
@@ -121,16 +144,36 @@ public class ItemServiceIntegrationTest {
         }
 
         @Test
-        void shouldReturnImageIfItemExist() {
+        void shouldReturnImageIfItemExistInDatabaseAndPutItemInCache() {
             String title = "New Item";
             String description = "New Description";
             int price = 1000;
             byte[] image = "dummy_image_content".getBytes();
             ItemEntity itemEntity = new ItemEntity(null, title, description, price, image);
 
-            itemRepository.save(itemEntity)
-                    .map(ItemEntity::getId)
-                    .flatMap(savedId -> itemService.getItemImage(savedId))
+            ItemEntity savedItem = itemRepository.save(itemEntity).block();
+            Long itemId = savedItem.getId();
+
+            itemService.getItemImage(itemId)
+                    .doOnNext(foundImage -> assertArrayEquals(image, foundImage))
+                    .block();
+            itemReactiveOperations.hasKey(storeCacheProperties.itemCachePrefix() + itemId)
+                    .doOnNext(Assertions::assertTrue)
+                    .block();
+        }
+
+        @Test
+        void shouldReturnImageIfItemExistInCache() {
+            String title = "New Item";
+            String description = "New Description";
+            int price = 1000;
+            byte[] image = "dummy_image_content".getBytes();
+            long itemId = 1L;
+            ItemEntity itemEntity = new ItemEntity(itemId, title, description, price, image);
+
+            itemReactiveOperations.opsForValue().set(storeCacheProperties.itemCachePrefix() + itemEntity.getId(), itemEntity).block();
+
+            itemService.getItemImage(itemId)
                     .doOnNext(foundImage -> assertArrayEquals(image, foundImage))
                     .block();
         }
@@ -140,7 +183,7 @@ public class ItemServiceIntegrationTest {
     class GetItemTest {
 
         @Test
-        void shouldReturnItem() {
+        void shouldReturnItemFromDBAndPutItemInCache() {
             String title = "New Item";
             String description = "New Description";
             int price = 1000;
@@ -157,6 +200,30 @@ public class ItemServiceIntegrationTest {
                                         assertEquals(price, item.getPrice());
                                         assertEquals(0, item.getCount());
                                     }))
+                    .map(Item::getId)
+                    .flatMap(itemId -> itemReactiveOperations.hasKey(storeCacheProperties.itemCachePrefix() + itemId).doOnNext(Assertions::assertTrue))
+                    .block();
+        }
+
+        @Test
+        void shouldReturnItemCache() {
+            String title = "New Item";
+            String description = "New Description";
+            int price = 1000;
+            byte[] image = "dummy_image_content".getBytes();
+            long itemId = 1L;
+            ItemEntity itemEntity = new ItemEntity(itemId, title, description, price, image);
+
+            itemReactiveOperations.opsForValue().set(storeCacheProperties.itemCachePrefix() + itemEntity.getId(), itemEntity).block();
+
+            itemService.getItem(itemId)
+                    .doOnNext(item -> {
+                        assertEquals(itemId, item.getId());
+                        assertEquals(title, item.getTitle());
+                        assertEquals(description, item.getDescription());
+                        assertEquals(price, item.getPrice());
+                        assertEquals(0, item.getCount());
+                    })
                     .block();
         }
 

@@ -19,12 +19,21 @@ spring:
   thymeleaf:
     enabled: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
 server:
   port: 8080
 
 store:
   view:
     itemsInRow: 3
+  cache:
+    itemCachePrefix: "item:"
+    orderCachePrefix: "order:"
+    ttl: PT120S
 
 r2dbc:
   datasource:
