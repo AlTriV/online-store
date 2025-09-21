@@ -46,6 +46,8 @@ services:
       DB_USER: admin
       DB_PASS: password
       PAYMENT_SERVICE_URL: "http://payment-app:8081/payment"
+      REDIS_HOST: redis_cache
+      REDIS_PORT: 6379
     depends_on:
       - store_db
       - payment-app

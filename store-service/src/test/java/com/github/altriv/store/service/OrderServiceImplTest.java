@@ -38,6 +38,8 @@ class OrderServiceImplTest {
 
     private final String orderCachePrefix = "order:";
 
+    private final String allOrdersKeyPrefix = "all_orders:";
+
     private final String cacheTtl = "PT20S";
 
     @InjectMocks
@@ -139,7 +141,7 @@ class OrderServiceImplTest {
         @BeforeEach
         void setUp() {
             when(cacheProperties.ttl()).thenReturn(cacheTtl);
-            when(cacheProperties.orderCachePrefix()).thenReturn(orderCachePrefix);
+            when(cacheProperties.allOrdersCachePrefix()).thenReturn(allOrdersKeyPrefix);
             when(orderRedisOperations.opsForValue()).thenReturn(orderValueOperations);
         }
 
@@ -152,11 +154,11 @@ class OrderServiceImplTest {
             OrderEntity orderEntity2 = new OrderEntity(2L, false, List.of(item, item2));
             Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
             Order expectedOrder2 = new Order(orderEntity2.getId(), orderEntity2.getItems());
-            List<String> ordersInCacheKeys = List.of(orderCachePrefix + 1, orderCachePrefix + 2);
+            List<String> ordersInCacheKeys = List.of(allOrdersKeyPrefix + 1, allOrdersKeyPrefix + 2);
 
-            when(orderRedisOperations.keys(eq(orderCachePrefix + "*"))).thenReturn(Flux.fromIterable(ordersInCacheKeys));
-            when(orderValueOperations.get(orderCachePrefix + 1)).thenReturn(Mono.just(expectedOrder));
-            when(orderValueOperations.get(orderCachePrefix + 2)).thenReturn(Mono.just(expectedOrder2));
+            when(orderRedisOperations.keys(eq(allOrdersKeyPrefix + "*"))).thenReturn(Flux.fromIterable(ordersInCacheKeys));
+            when(orderValueOperations.get(allOrdersKeyPrefix + 1)).thenReturn(Mono.just(expectedOrder));
+            when(orderValueOperations.get(allOrdersKeyPrefix + 2)).thenReturn(Mono.just(expectedOrder2));
             when(orderRepository.findAllByPaidIsTrue()).thenReturn(Flux.fromIterable(List.of()));
 
             orderService.getAllPaidOrders()
@@ -168,9 +170,9 @@ class OrderServiceImplTest {
                     })
                     .block();
 
-            verify(orderRedisOperations, times(1)).keys(eq(orderCachePrefix + "*"));
-            verify(orderValueOperations, times(1)).get(eq(orderCachePrefix + 1));
-            verify(orderValueOperations, times(1)).get(eq(orderCachePrefix + 2));
+            verify(orderRedisOperations, times(1)).keys(eq(allOrdersKeyPrefix + "*"));
+            verify(orderValueOperations, times(1)).get(eq(allOrdersKeyPrefix + 1));
+            verify(orderValueOperations, times(1)).get(eq(allOrdersKeyPrefix + 2));
         }
 
         @Test
@@ -182,13 +184,13 @@ class OrderServiceImplTest {
             OrderEntity orderEntity2 = new OrderEntity(2L, false, List.of(item, item2));
             Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
             Order expectedOrder2 = new Order(orderEntity2.getId(), orderEntity2.getItems());
-            String order1Key = orderCachePrefix + 1;
-            String order2Key = orderCachePrefix + 2;
+            String order1Key = allOrdersKeyPrefix + 1;
+            String order2Key = allOrdersKeyPrefix + 2;
             Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
 
             Duration ttl = Duration.parse(cacheTtl);
 
-            when(orderRedisOperations.keys(eq(orderCachePrefix + "*"))).thenReturn(Flux.empty());
+            when(orderRedisOperations.keys(eq(allOrdersKeyPrefix + "*"))).thenReturn(Flux.empty());
             when(orderValueOperations.set(eq(order1Key), eq(expectedOrder), eq(ttl))).thenReturn(saveToCacheFlag);
             when(orderValueOperations.set(eq(order2Key), eq(expectedOrder2), eq(ttl))).thenReturn(saveToCacheFlag);
             when(saveToCacheFlag.thenReturn(expectedOrder)).thenReturn(Mono.just(expectedOrder));
@@ -204,7 +206,7 @@ class OrderServiceImplTest {
                     })
                     .block();
 
-            verify(orderRedisOperations, times(1)).keys(eq(orderCachePrefix + "*"));
+            verify(orderRedisOperations, times(1)).keys(eq(allOrdersKeyPrefix + "*"));
             verify(orderValueOperations, times(1)).set(eq(order1Key), eq(expectedOrder), eq(ttl));
             verify(orderValueOperations, times(1)).set(eq(order2Key), eq(expectedOrder2), eq(ttl));
             verifyNoMoreInteractions(orderValueOperations);
@@ -290,8 +292,7 @@ class OrderServiceImplTest {
 
         @BeforeEach
         void setUp() {
-            when(cacheProperties.ttl()).thenReturn(cacheTtl);
-            when(cacheProperties.orderCachePrefix()).thenReturn(orderCachePrefix);
+            when(cacheProperties.allOrdersCachePrefix()).thenReturn(allOrdersKeyPrefix);
         }
 
         @Test
@@ -309,18 +310,19 @@ class OrderServiceImplTest {
         }
 
         @Test
-        void shouldReturnBoughtOrderAndPutInCache() {
+        void shouldReturnBoughtOrderAndClearAllOrdersCache() {
             Item item = new Item(1L, "title", "description", 1000, 1);
             Item item2 = new Item(2L, "title2", "description2", 2000, 2);
             OrderEntity orderEntity = new OrderEntity(1L, false, List.of(item, item2));
             OrderEntity paidOrderEntity = new OrderEntity(1L, true, List.of(item, item2));
             Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
-            Duration ttl = Duration.parse(cacheTtl);
-            Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
+            Mono<Long> deleteCacheCount = spy(Mono.just(2L));
+            List<String> keysInCache = List.of(allOrdersKeyPrefix + 3, allOrdersKeyPrefix + 4);
+            Flux<String> keysFlux = Flux.fromIterable(keysInCache);
 
-            when(orderRedisOperations.opsForValue()).thenReturn(orderValueOperations);
-            when(orderValueOperations.set(eq(orderCachePrefix + 1), eq(expectedOrder), eq(ttl))).thenReturn(saveToCacheFlag);
-            when(saveToCacheFlag.thenReturn(expectedOrder)).thenReturn(Mono.just(expectedOrder));
+            when(orderRedisOperations.keys(allOrdersKeyPrefix + "*")).thenReturn(keysFlux);
+            when(orderRedisOperations.delete(keysFlux)).thenReturn(deleteCacheCount);
+            when(deleteCacheCount.thenReturn(expectedOrder)).thenReturn(Mono.just(expectedOrder));
 
             when(orderRepository.findFirstByPaidIsFalse()).thenReturn(Mono.just(orderEntity));
             when(orderRepository.save(eq(paidOrderEntity))).thenReturn(Mono.just(paidOrderEntity));
@@ -336,8 +338,8 @@ class OrderServiceImplTest {
 
             verify(orderRepository, times(1)).findFirstByPaidIsFalse();
             verify(orderRepository, times(1)).save(paidOrderEntity);
-            verify(orderRedisOperations, times(1)).opsForValue();
-            verify(orderValueOperations, times(1)).set(eq(orderCachePrefix + 1), eq(expectedOrder), eq(ttl));
+            verify(orderRedisOperations, times(1)).keys(eq(allOrdersKeyPrefix + "*"));
+            verify(orderRedisOperations, times(1)).delete(keysFlux);
         }
     }
 }

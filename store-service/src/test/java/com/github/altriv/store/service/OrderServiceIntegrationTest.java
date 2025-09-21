@@ -69,7 +69,7 @@ class OrderServiceIntegrationTest {
     private OrderRepository orderRepository;
 
     @Autowired
-    private ReactiveRedisOperations<String, Order> orderReactiveOperations;
+    private ReactiveRedisOperations<String, Order> orderRedisOperations;
 
     @Autowired
     private StoreCacheProperties storeCacheProperties;
@@ -77,9 +77,8 @@ class OrderServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         orderRepository.deleteAll().block();
-        orderReactiveOperations.keys(storeCacheProperties.orderCachePrefix() + "*")
-                .flatMap(orderReactiveOperations.opsForValue()::delete)
-                .blockLast();
+        orderRedisOperations.delete(orderRedisOperations.keys(storeCacheProperties.allOrdersCachePrefix() + "*")).block();
+        orderRedisOperations.delete(orderRedisOperations.keys(storeCacheProperties.orderCachePrefix() + "*")).block();
     }
 
     @Nested
@@ -168,11 +167,11 @@ class OrderServiceIntegrationTest {
     class SavePaidOrderTest {
 
         @Test
-        void shouldSaveNotPaidOrderAsPaidAndPutItToCache() {
+        void shouldSaveNotPaidOrderAsPaidAndClearAllOrdersCache() {
             Item item = new Item(1L, "item title", "item description", 120, 5);
             Item item2 = new Item(2L, "item2 title", "item2 description", 420, 3);
             OrderEntity cart = new OrderEntity(null, false, List.of(item, item2));
-            String orderCachePrefix = storeCacheProperties.orderCachePrefix();
+            String allOrdersCachePrefix = storeCacheProperties.allOrdersCachePrefix();
 
             orderRepository.save(cart).block();
 
@@ -183,16 +182,9 @@ class OrderServiceIntegrationTest {
                         assertEquals(2, paidOrder.items().size());
                         assertTrue(paidOrder.items().containsAll(cart.getItems()));
                     })
-                    .flatMap(order -> orderReactiveOperations.opsForValue()
-                            .get(orderCachePrefix + order.id())
-                            .doOnNext(orderFromCache -> {
-                                assertNotNull(orderFromCache);
-                                assertEquals(cart.getId(), orderFromCache.id());
-                                assertEquals(2, orderFromCache.items().size());
-                                assertTrue(orderFromCache.items().containsAll(cart.getItems()));
-                            })
-                    )
                     .block();
+            List<String> keysInCache = orderRedisOperations.keys(allOrdersCachePrefix + "*").collectList().block();
+            assertTrue(keysInCache.isEmpty());
         }
 
         @Test
@@ -243,8 +235,8 @@ class OrderServiceIntegrationTest {
 
             Order expectedOrder1 = new Order(orderEntity1.getId(), orderEntity1.getItems());
 
-            String orderCacheKey = storeCacheProperties.orderCachePrefix() + orderEntity1.getId();
-            orderReactiveOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
+            String orderCacheKey = storeCacheProperties.allOrdersCachePrefix() + orderEntity1.getId();
+            orderRedisOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
 
             orderService.getAllPaidOrders()
                     .collectList()
@@ -284,7 +276,7 @@ class OrderServiceIntegrationTest {
             Order expectedOrder1 = new Order(orderId, List.of(item));
 
             String orderCacheKey = storeCacheProperties.orderCachePrefix() + expectedOrder1.id();
-            orderReactiveOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
+            orderRedisOperations.opsForValue().set(orderCacheKey, expectedOrder1, Duration.ofSeconds(1)).block();
 
             orderService.findPaidOrderById(orderId)
                     .doOnNext(paidOrderById -> {

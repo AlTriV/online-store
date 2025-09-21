@@ -33,6 +33,7 @@ store:
   cache:
     itemCachePrefix: "item:"
     orderCachePrefix: "order:"
+    allOrdersCachePrefix: "all_orders:"
     ttl: PT120S
 
 r2dbc:

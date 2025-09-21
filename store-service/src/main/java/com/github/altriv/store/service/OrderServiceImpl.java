@@ -43,7 +43,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Flux<Order> getAllPaidOrders() {
-        String cachePrefix = cacheProperties.orderCachePrefix();
+        String cachePrefix = cacheProperties.allOrdersCachePrefix();
         Duration ttl = Duration.parse(cacheProperties.ttl());
         return orderRedisOperations.keys(cachePrefix + "*").flatMap(orderRedisOperations.opsForValue()::get)
                 .switchIfEmpty(orderRepository.findAllByPaidIsTrue()
@@ -65,13 +65,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<Order> saveCartAsPaidOrder() {
-        String cachePrefix = cacheProperties.orderCachePrefix();
-        Duration ttl = Duration.parse(cacheProperties.ttl());
+        String cachePrefix = cacheProperties.allOrdersCachePrefix();
         return orderRepository.findFirstByPaidIsFalse()
                 .doOnNext(orderEntity -> orderEntity.setPaid(true))
                 .flatMap(orderRepository::save)
                 .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
                 .as(transactionalOperator::transactional)
-                .flatMap(order -> orderRedisOperations.opsForValue().set(cachePrefix + order.id(), order, ttl).thenReturn(order));
+                .flatMap(order -> orderRedisOperations.delete(orderRedisOperations.keys(cachePrefix + "*")).thenReturn(order));
     }
 }
