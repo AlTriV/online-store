@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
@@ -35,6 +36,7 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @Test
+    @WithMockUser(roles = "USER")
     void shouldReturnAllOrdersPage() {
         Item item1 = new Item(1L, "title1", "item1 description", 100, 5);
         Item item2 = new Item(2L, "title2", "item2 description", 200, 3);
@@ -74,6 +76,7 @@ class OrderControllerTest {
             "'test', 'true'",
             "1, 'tRue1'"
     })
+    @WithMockUser(roles = "USER")
     void shouldReturnClientError(String orderId, String newOrder) {
         String url = String.format("/orders/%s?newOrder=%s", orderId, newOrder);
 
@@ -86,6 +89,7 @@ class OrderControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "true", "false"})
+    @WithMockUser(roles = "USER")
     void shouldRedirectToAllOrdersIfOrderNotFound(String newOrder) {
         long orderId = 1L;
         String url = String.format("/orders/%d?newOrder=%s", orderId, newOrder);
@@ -102,6 +106,7 @@ class OrderControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "true", "false"})
+    @WithMockUser(roles = "USER")
     void shouldRedirectToOrderPageIfOrderFound(String newOrder) {
         Item item1 = new Item(1L, "title1", "item1 description", 100, 5);
         Item item2 = new Item(2L, "title2", "item2 description", 200, 3);

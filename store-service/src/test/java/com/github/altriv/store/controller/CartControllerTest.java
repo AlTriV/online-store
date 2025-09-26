@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 @WebFluxTest(CartController.class)
 class CartControllerTest {
@@ -41,6 +43,7 @@ class CartControllerTest {
     class CartItemsTest {
 
         @Test
+        @WithMockUser(roles = "USER")
         void shouldReturnNotEmptyCartPageWithPurchaseButton() {
             Item item = new Item(1L, "title", "description", 1000, 2);
             Item item2 = new Item(2L, "title2", "description2", 2000, 1);
@@ -88,6 +91,7 @@ class CartControllerTest {
                 "3000, 'Недостаточно средств для оплаты'",
                 ", 'Нет информации о балансе, возможность оплаты временно недоступна'"
         })
+        @WithMockUser(roles = "USER")
         void shouldReturnNotEmptyCartPageWithoutPurchaseButton(Long balance, String expectedErrorMessage) {
             Item item = new Item(1L, "title", "description", 1000, 2);
             Item item2 = new Item(2L, "title2", "description2", 2000, 1);
@@ -131,6 +135,7 @@ class CartControllerTest {
         }
 
         @Test
+        @WithMockUser(roles = "USER")
         void shouldReturnEmptyCartPage() {
             Cart cart = Cart.empty();
 
@@ -161,6 +166,7 @@ class CartControllerTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"PLUS", "MINUS", "DELETE"})
+        @WithMockUser(roles = "USER")
         void shouldPerformActionAndReturnToCartPage(String action) {
             long id = 1L;
 
@@ -171,7 +177,8 @@ class CartControllerTest {
             MultipartBodyBuilder builder = new MultipartBodyBuilder();
             builder.part("action", action);
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(csrf())
+                    .post().uri(url)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .bodyValue(builder.build())
                     .exchange()
@@ -188,6 +195,7 @@ class CartControllerTest {
                 "'Delete', 1",
                 "'DELETE', id"
         })
+        @WithMockUser(roles = "USER")
         void shouldReturnClientError(String action, String id) {
             String url = "/cart/items/" + id;
 
@@ -208,6 +216,7 @@ class CartControllerTest {
     class BuyItems {
 
         @Test
+        @WithMockUser(roles = "USER")
         void shouldRedirectToCartPageWithErrorBanner() {
             String url = "/cart/buy";
 
@@ -222,7 +231,8 @@ class CartControllerTest {
 
             when(storeService.buyItemsInCart()).thenReturn(Mono.just(purchase));
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(csrf())
+                    .post().uri(url)
                     .exchange()
                     .expectStatus().isOk()
                     .expectHeader().valueEquals(HttpHeaders.CONTENT_TYPE, "text/html")
@@ -255,6 +265,7 @@ class CartControllerTest {
         }
 
         @Test
+        @WithMockUser(roles = "USER")
         void shouldRedirectToPaidOrderPage() {
             String url = "/cart/buy";
 
@@ -272,7 +283,8 @@ class CartControllerTest {
 
             when(storeService.buyItemsInCart()).thenReturn(Mono.just(purchase));
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(csrf())
+                    .post().uri(url)
                     .exchange()
                     .expectStatus().is3xxRedirection()
                     .expectHeader().valueEquals(HttpHeaders.LOCATION, expectedRedirectUrl);

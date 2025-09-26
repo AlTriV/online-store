@@ -7,10 +7,10 @@
 </head>
 
 <body>
-    <a href="/store/orders" style="float:right;">
+    <a href="/store/orders" style="float:right;" th:if="${not isAnonymous}">
         <b>ЗАКАЗЫ &cudarrr;</b>
     </a>
-    <a href="/store/cart/items" style="float:right;">
+    <a href="/store/cart/items" style="float:right;" th:if="${not isAnonymous}">
         <b>КОРЗИНА &cudarrr;</b>
     </a>
     <a href="/store/main/items" style="float:right;">
@@ -27,7 +27,7 @@
         <p>
             <span th:text="${item.getDescription()}"></span>
         </p>
-        <form th:action="${'/store/items/'+item.getId()}" method="post" enctype="multipart/form-data">
+        <form th:action="${'/store/items/'+item.getId()}" method="post" enctype="multipart/form-data" th:if="${not isAnonymous}">
             <button name="action" value="MINUS">-</button>
             <span th:text="${item.getCount()}"></span>
             <button name="action" value="PLUS">+</button>

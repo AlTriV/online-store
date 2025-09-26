@@ -7,6 +7,7 @@ import com.github.altriv.store.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,6 +51,7 @@ public class AdminController {
     }
 
     @PostMapping(path = "/items")
+    @PreAuthorize("hasRole('ADMIN')")
     public Mono<String> saveItem(@RequestPart(name = "title") String title,
                                  @RequestPart(name = "description") String description,
                                  @RequestPart(name = "price") String price,
@@ -60,6 +62,7 @@ public class AdminController {
     }
 
     @PostMapping("/items/{itemId}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
     public Mono<String> deleteItem(@PathVariable("itemId") String itemId) {
         log.info("ADMIN. Request to delete item with id: {}", itemId);
         return itemService.deleteItem(Long.parseLong(itemId))

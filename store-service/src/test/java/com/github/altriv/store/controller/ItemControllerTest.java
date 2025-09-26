@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 @WebFluxTest(ItemController.class)
 class ItemControllerTest {
@@ -38,6 +40,7 @@ class ItemControllerTest {
     private ItemService itemService;
 
     @Nested
+    @WithMockUser(roles = "USER")
     class GetItem {
 
         @Test
@@ -83,6 +86,7 @@ class ItemControllerTest {
     }
 
     @Nested
+    @WithMockUser(roles = "USER")
     class ChangeItemCountTest {
 
         @ParameterizedTest
@@ -97,7 +101,8 @@ class ItemControllerTest {
             MultipartBodyBuilder builder = new MultipartBodyBuilder();
             builder.part("action", action);
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(csrf())
+                    .post().uri(url)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .bodyValue(builder.build())
                     .exchange()
@@ -120,7 +125,8 @@ class ItemControllerTest {
             MultipartBodyBuilder builder = new MultipartBodyBuilder();
             builder.part("action", action);
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(csrf())
+                    .post().uri(url)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .bodyValue(builder.build())
                     .exchange()
@@ -132,6 +138,7 @@ class ItemControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "dummy_image_content"})
+    @WithMockUser(roles = "USER")
     void shouldReturnBytesOfImage(String dummyImageContent) {
         byte[] imageBytes = dummyImageContent.getBytes();
         String url = "/items/1/image";

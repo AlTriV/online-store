@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,17 +40,20 @@ public class MainController {
                                  @RequestParam(name = "sort", defaultValue = "NO") ItemSorting sort,
                                  @RequestParam(name = "pageNumber", defaultValue = "1") int pageNumber,
                                  @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+                                 Authentication authentication,
                                  Model model) {
         log.info("Request to get items. Params: search= '{}', sort= {}, pageNumber= {}, pageSize= {}", search, sort, pageNumber, pageSize);
         return storeService.searchItems(search, sort, pageNumber, pageSize)
                 .doOnNext(itemsPage -> {
                     model.addAttribute("paging", itemsPage.getPageInfo());
                     model.addAttribute("items", itemsPage.getItemRows(itemsInRow));
+                    model.addAttribute("isAnonymous", authentication instanceof AnonymousAuthenticationToken);
                 })
                 .map(itemsPage -> "main");
     }
 
     @PostMapping(value = "/main/items/{itemId}")
+    @PreAuthorize("hasRole('USER')")
     public Mono<String> changeItemCount(@PathVariable("itemId") long itemId,
                                         @RequestPart("action") String action) {
         log.info("Request to change item count in cart from main page. Params: itemId= {}, action= {}", itemId, action);

@@ -6,6 +6,9 @@ import com.github.altriv.store.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,11 +31,13 @@ public class ItemController {
 
     @GetMapping("/{itemId}")
     public Mono<String> getItem(@PathVariable long itemId,
+                                Authentication authentication,
                                 Model model) {
         log.info("Request to get item with id {}", itemId);
         return storeService.getItemWithCartCount(itemId)
                 .map(item -> {
                     model.addAttribute("item", item);
+                    model.addAttribute("isAnonymous", authentication instanceof AnonymousAuthenticationToken);
                     return "item";
                 })
                 .defaultIfEmpty("redirect:/main/items");
@@ -44,6 +49,7 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}")
+    @PreAuthorize("hasRole('USER')")
     public Mono<String> changeItemCount(@PathVariable("itemId") long itemId,
                                         @RequestPart(value = "action") String action) {
         log.info("Request to change item count in cart from item page. Params: itemId= {}, action= {}", itemId, action);

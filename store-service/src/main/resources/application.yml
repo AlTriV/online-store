@@ -35,6 +35,14 @@ store:
     orderCachePrefix: "order:"
     allOrdersCachePrefix: "all_orders:"
     ttl: PT120S
+  admin:
+    username: ${STORE_ADMIN_USER}
+    password: ${STORE_ADMIN_PASS}
+  predefined-users:
+    credentials:
+      - "alice:alice"
+      - "bob:bob"
+
 
 r2dbc:
   datasource:

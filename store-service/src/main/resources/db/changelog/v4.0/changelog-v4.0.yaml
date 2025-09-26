@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: "add_table_users"
+      author: "avtry"
+      comment: "Add table users"
+      changes:
+        - sqlFile:
+            path: add_table_users.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: add_table_users_rollback.sql
+            relativeToChangelogFile: true
