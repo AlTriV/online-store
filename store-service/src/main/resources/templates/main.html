@@ -7,12 +7,30 @@
 </head>
 
 <body>
-    <a href="/store/orders" style="float:right;" th:if="${not isAnonymous}">
-        <b>ЗАКАЗЫ &cudarrr;</b>
-    </a>
-    <a href="/store/cart/items" style="float:right;" th:if="${not isAnonymous}">
-        <b>КОРЗИНА &cudarrr;</b>
-    </a>
+    <table style="float:right">
+        <tr>
+            <td>
+                <a href="/store/login" style="float:right;" th:if="${isAnonymous}">
+                    <b>ВОЙТИ В АККАУНТ &cudarrr;</b>
+                </a>
+                <a href="/store/logout" style="float:right;" th:if="${not isAnonymous}">
+                    <b>ВЫЙТИ ИЗ АККАУНТА &cudarrr;</b>
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <a href="/store/orders" style="float:right;" th:if="${not isAnonymous}">
+                    <b>ЗАКАЗЫ &cudarrr;</b>
+                </a>
+            </td>
+            <td>
+                <a href="/store/cart/items" style="float:right;" th:if="${not isAnonymous}">
+                    <b>КОРЗИНА &cudarrr;</b>
+                </a>
+            </td>
+        </tr>
+    </table>
     <table style="width:70%;margin-left:auto;margin-right:auto;">
         <tr>
             <td>
