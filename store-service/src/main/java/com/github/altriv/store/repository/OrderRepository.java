@@ -9,9 +9,9 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface OrderRepository extends R2dbcRepository<OrderEntity, Long> {
 
-    Mono<OrderEntity> findFirstByPaidIsFalse();
+    Mono<OrderEntity> findFirstByPaidIsFalseAndUsername(String username);
 
-    Flux<OrderEntity> findAllByPaidIsTrue();
+    Flux<OrderEntity> findAllByPaidIsTrueAndUsername(String username);
 
-    Mono<OrderEntity> findFirstByPaidIsTrueAndId(Long id);
+    Mono<OrderEntity> findByPaidIsTrueAndIdAndUsername(Long id, String username);
 }

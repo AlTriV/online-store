@@ -32,8 +32,6 @@ store:
     itemsInRow: 3
   cache:
     itemCachePrefix: "item:"
-    orderCachePrefix: "order:"
-    allOrdersCachePrefix: "all_orders:"
     ttl: PT120S
   admin:
     username: ${STORE_ADMIN_USER}

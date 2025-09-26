@@ -11,3 +11,15 @@ databaseChangeLog:
         - sqlFile:
             path: add_table_users_rollback.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "add_username_to_orders"
+      author: "avtry"
+      comment: "Add column username to orders table"
+      changes:
+        - sqlFile:
+            path: alter_orders_add_username.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: alter_orders_add_username_rollback.sql
+            relativeToChangelogFile: true

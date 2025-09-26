@@ -27,6 +27,8 @@ public class OrderEntity {
 
     private boolean paid;
 
+    private String username;
+
     @Column("items")
     private List<Item> items;
 }
