@@ -24,7 +24,7 @@ public class SecurityConfig {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/", "/store", "/main/items/**", "/items/**").permitAll()
+                        .pathMatchers("", "/", "/main/items/**", "/items/**").permitAll()
                         .pathMatchers("/admin/**").hasRole("ADMIN")
                         .pathMatchers("/cart/**").hasRole("USER")
                         .pathMatchers("/orders/**").hasRole("USER")

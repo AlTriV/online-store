@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import reactor.core.publisher.Mono;
+
+import static java.util.Optional.ofNullable;
 
 @Slf4j
 @Controller
@@ -38,6 +41,7 @@ public class ItemController {
                 .map(item -> {
                     model.addAttribute("item", item);
                     model.addAttribute("isAnonymous", authentication instanceof AnonymousAuthenticationToken);
+                    model.addAttribute("isAdmin", isAdmin(authentication));
                     return "item";
                 })
                 .defaultIfEmpty("redirect:/main/items");
@@ -60,5 +64,13 @@ public class ItemController {
     @ExceptionHandler(IllegalArgumentException.class)
     public Mono<ResponseEntity<String>> handleCustomException(IllegalArgumentException ex) {
         return Mono.just(ResponseEntity.badRequest().body(ex.getMessage()));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return ofNullable(authentication)
+                .filter(Authentication::isAuthenticated)
+                .map(Authentication::getAuthorities)
+                .map(authorities -> authorities.stream().map(GrantedAuthority::getAuthority).anyMatch("ROLE_ADMIN"::equals))
+                .orElse(false);
     }
 }

@@ -20,13 +20,18 @@
         </tr>
         <tr>
             <td>
-                <a href="/store/orders" style="float:right;" th:if="${not isAnonymous}">
+                <a href="/store/orders" style="float:right;" th:if="${(not isAnonymous) and (not isAdmin)}">
                     <b>ЗАКАЗЫ &cudarrr;</b>
                 </a>
             </td>
             <td>
-                <a href="/store/cart/items" style="float:right;" th:if="${not isAnonymous}">
+                <a href="/store/cart/items" style="float:right;" th:if="${(not isAnonymous) and (not isAdmin)}">
                     <b>КОРЗИНА &cudarrr;</b>
+                </a>
+            </td>
+            <td th:if="${isAdmin}">
+                <a href="/store/admin/items" style="float:right;">
+                    <b>ДОБАВИТЬ ТОВАР &cudarrr;</b>
                 </a>
             </td>
         </tr>
@@ -89,7 +94,7 @@
                     </tr>
                     <tr>
                         <td>
-                            <form th:action="${'/store/main/items/'+item.getId()}" method="post" enctype="multipart/form-data" th:if="${not isAnonymous}">
+                            <form th:action="${'/store/main/items/'+item.getId()}" method="post" enctype="multipart/form-data" th:if="${(not isAnonymous) and (not isAdmin)}">
                                 <button name="action" value="MINUS">-</button>
                                 <span th:text="${item.getCount()}"></span>
                                 <button name="action" value="PLUS">+</button>
