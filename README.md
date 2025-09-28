@@ -1,4 +1,4 @@
-# Online Store v3
+# Online Store v4
 
 ## Introduction
 
@@ -10,6 +10,9 @@ small service with simple logic for purchasing orders, implementing [payment-ser
 * [payment-client-starter](payment-client-starter) - simple client to simplify interaction with the payment-service, generated
 using OpenAPI generator gradle plugin and based on [payment-service-spec.yaml](api/payment-service-spec.yaml)
 * [store-service](store-service) - main store logic service
+
+Store-service secured by username/password login form security. Communication between store-service and payment-service
+secured by bearer auth using jwt and keycloak.
 
 
 ## Features
@@ -27,6 +30,27 @@ using OpenAPI generator gradle plugin and based on [payment-service-spec.yaml](a
 
 ## App start requirements
 
+For test cases the store-service module have additional application [properties](store-service/src/main/resources/application.yml) 
+to add test users in the app.
+
+These properties add admin user:
+```yaml
+store:
+  admin:
+    username: ${STORE_ADMIN_USER}
+    password: ${STORE_ADMIN_PASS}
+```
+
+This property will add simple users (alice and bob) to the app:
+```yaml
+store:
+  predefined-users:
+    credentials:
+      - "alice:alice"
+      - "bob:bob"
+```
+Credentials should be added in format "username:password".
+
 First of all build executable jar file with gradle:
 
 ``` 
@@ -43,11 +67,13 @@ Online store application will start on http://localhost:8080/store address.
 
 Payment service will start on http://localhost:8081/payment.
 
-To add products to the showcase, you can use the admin panel at http://localhost:8080/store/admin
+To add products to the showcase, you can use the admin panel which will be available on start page after logging in as with admin rights.
 
-To add credits on wallet POST request to http://localhost:8081/payment/add. Body example:
+To add credits on wallet POST request to http://localhost:8081/payment/add (this url is not secured for test reason).
+Body example:
 ```json
 {
-	"creditsAmount": 12500
+  "username": "alice",
+  "creditsAmount": 10000
 }
 ```
