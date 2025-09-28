@@ -8,6 +8,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.oauth2.client.reactive.ReactiveOAuth2ClientAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -28,10 +30,7 @@ import static org.mockito.Mockito.when;
 
 @WebFluxTest(
         controllers = OrderController.class,
-        properties = {
-                "spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8082/realms/master",
-                "spring.security.oauth2.client.registration.store-service.client-secret=123456"
-        }
+        excludeAutoConfiguration = {ReactiveOAuth2ClientAutoConfiguration.class, OAuth2ClientAutoConfiguration.class}
 )
 class OrderControllerTest {
 

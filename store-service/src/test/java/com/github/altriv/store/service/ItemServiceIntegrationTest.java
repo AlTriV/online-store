@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -32,12 +33,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@MockitoBean(types = PaymentClient.class)
+@MockitoBean(types = {PaymentClient.class, ReactiveOAuth2AuthorizedClientManager.class})
 @TestPropertySource(properties = {
-        "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration",
-        "store.cache.ttl=PT3S",
-        "spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8082/realms/master",
-        "spring.security.oauth2.client.registration.store-service.client-secret=123456"
+        "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration, " +
+                "org.springframework.boot.autoconfigure.security.oauth2.client.reactive.ReactiveOAuth2ClientAutoConfiguration, " +
+                "org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration",
+        "store.cache.ttl=PT3S"
 })
 public class ItemServiceIntegrationTest {
 
