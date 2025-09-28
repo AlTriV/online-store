@@ -1,5 +1,6 @@
 package com.github.altriv.paymentservice.controller;
 
+import com.github.altriv.paymentservice.config.SecurityConfig;
 import com.github.altriv.paymentservice.domain.BalanceResponse;
 import com.github.altriv.paymentservice.domain.PurchaseRequest;
 import com.github.altriv.paymentservice.domain.PurchaseResponse;
@@ -12,6 +13,7 @@ import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -22,8 +24,13 @@ import java.util.UUID;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt;
 
-@WebFluxTest(PaymentController.class)
+@WebFluxTest(
+        controllers = PaymentController.class,
+        properties = "spring.security.oauth2.resourceserver.jwt.issuer-uri='http://localhost:8082/realms/master'"
+)
+@Import(SecurityConfig.class)
 class PaymentControllerTest {
 
     @MockitoBean
@@ -43,10 +50,10 @@ class PaymentControllerTest {
             String url = String.format(urlTemplate, username);
             BalanceResponse expectedBalance = new BalanceResponse().balance(balanceAmount);
 
-
             when(paymentService.getBalance(username)).thenReturn(Mono.just(expectedBalance));
 
-            webTestClient.get().uri(url)
+            webTestClient.mutateWith(mockJwt())
+                    .get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
@@ -62,7 +69,8 @@ class PaymentControllerTest {
 
             when(paymentService.getBalance(username)).thenReturn(Mono.empty());
 
-            webTestClient.get().uri(url)
+            webTestClient.mutateWith(mockJwt())
+                    .get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
@@ -86,7 +94,8 @@ class PaymentControllerTest {
 
             String url = "/pay";
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(mockJwt())
+                    .post().uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(purchaseRq)
                     .exchange()
@@ -106,7 +115,8 @@ class PaymentControllerTest {
         void shouldReturnBadRequestIfValidationFails(String content) {
             String url = "/pay";
 
-            webTestClient.post().uri(url)
+            webTestClient.mutateWith(mockJwt())
+                    .post().uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(content)
                     .exchange()

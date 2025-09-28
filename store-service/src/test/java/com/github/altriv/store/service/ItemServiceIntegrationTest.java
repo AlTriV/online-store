@@ -1,7 +1,6 @@
 package com.github.altriv.store.service;
 
 import com.github.altriv.paymentclient.PaymentClient;
-import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
@@ -36,11 +35,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @MockitoBean(types = PaymentClient.class)
 @TestPropertySource(properties = {
         "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration",
-        "store.cache.itemCachePrefix='item:'",
-        "store.cache.orderCachePrefix='order:'",
-        "store.cache.ttl=PT3S"
+        "store.cache.ttl=PT3S",
+        "spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8082/realms/master",
+        "spring.security.oauth2.client.registration.store-service.client-secret=123456"
 })
 public class ItemServiceIntegrationTest {
+
+    private static final String ITEM_CACHE_PREFIX = "item:";
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17:5");
@@ -74,13 +75,10 @@ public class ItemServiceIntegrationTest {
     @Autowired
     private ReactiveRedisOperations<String, ItemEntity> itemReactiveOperations;
 
-    @Autowired
-    private StoreCacheProperties storeCacheProperties;
-
     @BeforeEach
     void setUp() {
         itemRepository.deleteAll().block();
-        itemReactiveOperations.keys(storeCacheProperties.itemCachePrefix() + "*")
+        itemReactiveOperations.keys(ITEM_CACHE_PREFIX + "*")
                 .flatMap(itemReactiveOperations.opsForValue()::delete)
                 .blockLast();
     }
@@ -157,7 +155,7 @@ public class ItemServiceIntegrationTest {
             itemService.getItemImage(itemId)
                     .doOnNext(foundImage -> assertArrayEquals(image, foundImage))
                     .block();
-            itemReactiveOperations.hasKey(storeCacheProperties.itemCachePrefix() + itemId)
+            itemReactiveOperations.hasKey(ITEM_CACHE_PREFIX + itemId)
                     .doOnNext(Assertions::assertTrue)
                     .block();
         }
@@ -171,7 +169,7 @@ public class ItemServiceIntegrationTest {
             long itemId = 1L;
             ItemEntity itemEntity = new ItemEntity(itemId, title, description, price, image);
 
-            itemReactiveOperations.opsForValue().set(storeCacheProperties.itemCachePrefix() + itemEntity.getId(), itemEntity).block();
+            itemReactiveOperations.opsForValue().set(ITEM_CACHE_PREFIX + itemEntity.getId(), itemEntity).block();
 
             itemService.getItemImage(itemId)
                     .doOnNext(foundImage -> assertArrayEquals(image, foundImage))
@@ -201,7 +199,7 @@ public class ItemServiceIntegrationTest {
                                         assertEquals(0, item.getCount());
                                     }))
                     .map(Item::getId)
-                    .flatMap(itemId -> itemReactiveOperations.hasKey(storeCacheProperties.itemCachePrefix() + itemId).doOnNext(Assertions::assertTrue))
+                    .flatMap(itemId -> itemReactiveOperations.hasKey(ITEM_CACHE_PREFIX + itemId).doOnNext(Assertions::assertTrue))
                     .block();
         }
 
@@ -214,7 +212,7 @@ public class ItemServiceIntegrationTest {
             long itemId = 1L;
             ItemEntity itemEntity = new ItemEntity(itemId, title, description, price, image);
 
-            itemReactiveOperations.opsForValue().set(storeCacheProperties.itemCachePrefix() + itemEntity.getId(), itemEntity).block();
+            itemReactiveOperations.opsForValue().set(ITEM_CACHE_PREFIX + itemEntity.getId(), itemEntity).block();
 
             itemService.getItem(itemId)
                     .doOnNext(item -> {

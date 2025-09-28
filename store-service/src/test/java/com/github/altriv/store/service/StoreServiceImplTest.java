@@ -23,6 +23,9 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -35,7 +38,9 @@ import java.util.UUID;
 
 import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,6 +51,8 @@ import static org.mockito.Mockito.when;
 @ContextConfiguration(classes = StoreServiceImpl.class)
 @WithMockUser(username = "user")
 class StoreServiceImplTest {
+
+    private static final String TEST_AUTH_TOKEN = "dummy_token";
 
     @MockitoBean
     private ItemService itemService;
@@ -58,6 +65,9 @@ class StoreServiceImplTest {
 
     @MockitoBean
     private TransactionalOperator transactionalOperator;
+
+    @MockitoBean
+    private ReactiveOAuth2AuthorizedClientManager clientManager;
 
     @Autowired
     private StoreServiceImpl storeService;
@@ -205,6 +215,16 @@ class StoreServiceImplTest {
     @Nested
     class BuyItemsInCartTest {
 
+        @BeforeEach
+        void initClientManager() {
+            OAuth2AuthorizedClient oAuth2AuthorizedClient = mock(OAuth2AuthorizedClient.class);
+            OAuth2AccessToken oAuth2AccessToken = mock(OAuth2AccessToken.class);
+            when(clientManager.authorize(any())).thenReturn(Mono.just(oAuth2AuthorizedClient));
+            when(oAuth2AuthorizedClient.getAccessToken()).thenReturn(oAuth2AccessToken);
+            when(oAuth2AccessToken.getTokenValue()).thenReturn(TEST_AUTH_TOKEN);
+            when(paymentClient.setJwtToken(TEST_AUTH_TOKEN)).thenReturn(paymentClient);
+        }
+
         @Test
         void shouldReturnFailedPurchaseIfPaymentServiceNotAvailable() {
             Item item = new Item(1L, "title", "description", 1000, 2);
@@ -299,6 +319,16 @@ class StoreServiceImplTest {
 
     @Nested
     class GetCartTest {
+
+        @BeforeEach
+        void initClientManager() {
+            OAuth2AuthorizedClient oAuth2AuthorizedClient = mock(OAuth2AuthorizedClient.class);
+            OAuth2AccessToken oAuth2AccessToken = mock(OAuth2AccessToken.class);
+            when(clientManager.authorize(any())).thenReturn(Mono.just(oAuth2AuthorizedClient));
+            when(oAuth2AuthorizedClient.getAccessToken()).thenReturn(oAuth2AccessToken);
+            when(oAuth2AccessToken.getTokenValue()).thenReturn(TEST_AUTH_TOKEN);
+            when(paymentClient.setJwtToken(TEST_AUTH_TOKEN)).thenReturn(paymentClient);
+        }
 
         @Test
         void shouldReturnCartWithBalance() {

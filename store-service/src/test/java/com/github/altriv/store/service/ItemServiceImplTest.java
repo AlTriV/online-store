@@ -1,6 +1,5 @@
 package com.github.altriv.store.service;
 
-import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
@@ -37,18 +36,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ItemServiceImplTest {
 
-    private final String itemCachePrefix = "item:";
-
-    private final String cacheTtl = "PT20S";
+    private static final String ITEM_CACHE_PREFIX = "item:";
 
     @Mock
     private ReactiveRedisOperations<String, ItemEntity> itemRedisOperations;
 
     @Mock
     private ReactiveValueOperations<String, ItemEntity> itemValueOperations;
-
-    @Mock
-    private StoreCacheProperties cacheProperties;
 
     @Mock
     private ItemRepository itemRepository;
@@ -188,15 +182,13 @@ class ItemServiceImplTest {
 
         @BeforeEach
         void setUp() {
-            when(cacheProperties.ttl()).thenReturn(cacheTtl);
-            when(cacheProperties.itemCachePrefix()).thenReturn(itemCachePrefix);
             when(itemRedisOperations.opsForValue()).thenReturn(itemValueOperations);
         }
 
         @Test
         void shouldReturnEmptyWhenNoItemFound() {
             long itemId = 1L;
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.empty());
             when(itemRepository.findById(itemId)).thenReturn(Mono.empty());
 
@@ -217,12 +209,12 @@ class ItemServiceImplTest {
             ItemEntity itemEntity = new ItemEntity(itemId, itemTitle, itemDescription, itemPrice, null);
             Item expectedItem = new Item(itemId, itemTitle, itemDescription, itemPrice, 0);
 
-            Duration ttl = Duration.parse(cacheProperties.ttl());
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            Duration ttlDuration = Duration.parse("PT20S");
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.empty());
             when(itemRepository.findById(itemId)).thenReturn(Mono.just(itemEntity));
-            when(itemValueOperations.set(eq(itemCacheKey), eq(itemEntity), eq(ttl))).thenReturn(saveToCacheFlag);
+            when(itemValueOperations.set(eq(itemCacheKey), eq(itemEntity), eq(ttlDuration))).thenReturn(saveToCacheFlag);
             when(saveToCacheFlag.thenReturn(itemEntity)).thenReturn(Mono.just(itemEntity));
 
             itemService.getItem(itemId)
@@ -232,7 +224,7 @@ class ItemServiceImplTest {
 
             verify(itemValueOperations, times(1)).get(eq(itemCacheKey));
             verify(itemRepository, times(1)).findById(itemId);
-            verify(itemValueOperations, times(1)).set(eq(itemCacheKey), eq(itemEntity), eq(ttl));
+            verify(itemValueOperations, times(1)).set(eq(itemCacheKey), eq(itemEntity), eq(ttlDuration));
         }
 
         @Test
@@ -244,7 +236,7 @@ class ItemServiceImplTest {
             ItemEntity itemEntity = new ItemEntity(itemId, itemTitle, itemDescription, itemPrice, null);
             Item expectedItem = new Item(itemId, itemTitle, itemDescription, itemPrice, 0);
 
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.just(itemEntity));
             when(itemRepository.findById(itemId)).thenReturn(Mono.empty());
 
@@ -264,15 +256,13 @@ class ItemServiceImplTest {
 
         @BeforeEach
         void setUp() {
-            when(cacheProperties.ttl()).thenReturn(cacheTtl);
-            when(cacheProperties.itemCachePrefix()).thenReturn(itemCachePrefix);
             when(itemRedisOperations.opsForValue()).thenReturn(itemValueOperations);
         }
 
         @Test
         void shouldReturnEmptyWhenNoItemFound() {
             long itemId = 1L;
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.empty());
             when(itemRepository.findById(itemId)).thenReturn(Mono.empty());
 
@@ -290,12 +280,12 @@ class ItemServiceImplTest {
             byte[] image = "dummy image content".getBytes();
             ItemEntity itemEntity = new ItemEntity(itemId, "title", "description", 1000, image);
 
-            Duration ttl = Duration.parse(cacheProperties.ttl());
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            Duration ttlDuration = Duration.parse("PT20S");
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.empty());
             when(itemRepository.findById(itemId)).thenReturn(Mono.just(itemEntity));
-            when(itemValueOperations.set(eq(itemCacheKey), eq(itemEntity), eq(ttl))).thenReturn(saveToCacheFlag);
+            when(itemValueOperations.set(eq(itemCacheKey), eq(itemEntity), eq(ttlDuration))).thenReturn(saveToCacheFlag);
             when(saveToCacheFlag.thenReturn(itemEntity)).thenReturn(Mono.just(itemEntity));
 
             itemService.getItemImage(itemId)
@@ -304,7 +294,7 @@ class ItemServiceImplTest {
 
             verify(itemValueOperations, times(1)).get(eq(itemCacheKey));
             verify(itemRepository, times(1)).findById(itemId);
-            verify(itemValueOperations, times(1)).set(eq(itemCacheKey), eq(itemEntity), eq(ttl));
+            verify(itemValueOperations, times(1)).set(eq(itemCacheKey), eq(itemEntity), eq(ttlDuration));
         }
 
         @Test
@@ -313,7 +303,7 @@ class ItemServiceImplTest {
             byte[] image = "dummy image content".getBytes();
             ItemEntity itemEntity = new ItemEntity(itemId, "title", "description", 1000, image);
 
-            String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
+            String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
             when(itemValueOperations.get(eq(itemCacheKey))).thenReturn(Mono.just(itemEntity));
             when(itemRepository.findById(itemId)).thenReturn(Mono.empty());
 

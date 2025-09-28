@@ -1,12 +1,12 @@
 package com.github.altriv.store.service;
 
-import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Order;
 import com.github.altriv.store.repository.OrderRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
@@ -27,10 +27,12 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CACHE_TEMPLATE = "order-%s:";
     private static final String ALL_ORDERS_CACHE_TEMPLATE = "all-orders-%s:";
 
+    @Value("${store.cache.ttl}")
+    private String ttl = "PT20S";
+
     private final OrderRepository orderRepository;
     private final TransactionalOperator transactionalOperator;
     private final ReactiveRedisOperations<String, Order> orderRedisOperations;
-    private final StoreCacheProperties cacheProperties;
 
     @Override
     public Mono<Cart> getNotPaidOrderAsCart() {
@@ -53,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Flux<Order> getAllPaidOrders() {
-        Duration ttl = Duration.parse(cacheProperties.ttl());
+        Duration ttlDuration = Duration.parse(ttl);
         return getCurrentUsername()
                 .flux()
                 .flatMap(username -> orderRedisOperations.keys(format(ALL_ORDERS_CACHE_TEMPLATE, username) + "*")
@@ -61,7 +63,7 @@ public class OrderServiceImpl implements OrderService {
                         .switchIfEmpty(orderRepository.findAllByPaidIsTrueAndUsername(username)
                                 .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
                                 .flatMap(order -> orderRedisOperations.opsForValue()
-                                        .set(format(ALL_ORDERS_CACHE_TEMPLATE, username) + order.id(), order, ttl)
+                                        .set(format(ALL_ORDERS_CACHE_TEMPLATE, username) + order.id(), order, ttlDuration)
                                         .thenReturn(order))
                         )
                 );
@@ -69,14 +71,14 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<Order> findPaidOrderById(long orderId) {
-        Duration ttl = Duration.parse(cacheProperties.ttl());
+        Duration ttlDuration = Duration.parse(ttl);
         return getCurrentUsername()
                 .flatMap(username -> orderRedisOperations.opsForValue().get(format(ORDER_CACHE_TEMPLATE, username) + orderId)
                         .switchIfEmpty(orderRepository.findByPaidIsTrueAndIdAndUsername(orderId, username)
                                 .map(orderEntity -> new Order(orderEntity.getId(), orderEntity.getItems()))
                                 .flatMap(order ->
                                         orderRedisOperations.opsForValue()
-                                                .set(format(ORDER_CACHE_TEMPLATE, username) + order.id(), order, ttl)
+                                                .set(format(ORDER_CACHE_TEMPLATE, username) + order.id(), order, ttlDuration)
                                                 .thenReturn(order)
                                 )
                         )

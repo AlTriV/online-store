@@ -12,6 +12,10 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
@@ -28,6 +32,7 @@ public class StoreServiceImpl implements StoreService {
     private final ItemService itemService;
     private final OrderService orderService;
     private final TransactionalOperator transactionalOperator;
+    private final ReactiveOAuth2AuthorizedClientManager clientManager;
     private final PaymentClient paymentClient;
 
     @Override
@@ -64,7 +69,7 @@ public class StoreServiceImpl implements StoreService {
     public Mono<Cart> getCart() {
         return orderService.getNotPaidOrderAsCart()
                 .flatMap(cart -> getCurrentUsername()
-                        .flatMap(username -> paymentClient.getBalance(username)
+                        .flatMap(username -> requestBalance(username)
                                 .onErrorComplete()
                                 .map(BalanceResponse::getBalance)
                                 .map(cart::putBalance)
@@ -87,11 +92,7 @@ public class StoreServiceImpl implements StoreService {
         return getCurrentUsername()
                 .flatMap(username -> orderService.getNotPaidOrderAsCart()
                         .map(cart -> Purchase.builder().cart(cart).username(username).build())
-                        .flatMap(purchase -> paymentClient.purchase(purchase.generatePurchaseRequest())
-                                .onErrorComplete()
-                                .map(purchase::processPurchaseResponse)
-                                .defaultIfEmpty(purchase.addErrorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже"))
-                        )
+                        .flatMap(this::requestPurchase)
                         .flatMap(purchase -> {
                             if (purchase.isSuccess()) {
                                 return orderService.saveCartAsPaidOrder().map(purchase::addPaidOrder);
@@ -112,5 +113,29 @@ public class StoreServiceImpl implements StoreService {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Principal::getName);
+    }
+
+    private Mono<Purchase> requestPurchase(Purchase purchase) {
+        return requestAccessToken()
+                .flatMap(accessToken -> paymentClient.setJwtToken(accessToken)
+                        .purchase(purchase.generatePurchaseRequest())
+                        .onErrorComplete()
+                        .map(purchase::processPurchaseResponse)
+                        .defaultIfEmpty(purchase.addErrorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже"))
+                );
+    }
+
+    private Mono<BalanceResponse> requestBalance(String username) {
+        return requestAccessToken().flatMap(accessToken -> paymentClient.setJwtToken(accessToken).getBalance(username));
+    }
+
+    private Mono<String> requestAccessToken() {
+        return clientManager.authorize(OAuth2AuthorizeRequest
+                        .withClientRegistrationId("store-service")
+                        .principal("system")
+                        .build()
+                )
+                .map(OAuth2AuthorizedClient::getAccessToken)
+                .map(OAuth2AccessToken::getTokenValue);
     }
 }

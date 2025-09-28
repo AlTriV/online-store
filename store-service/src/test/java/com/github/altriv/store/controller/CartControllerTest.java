@@ -30,7 +30,13 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
-@WebFluxTest(CartController.class)
+@WebFluxTest(
+        controllers = CartController.class,
+        properties = {
+                "spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8082/realms/master",
+                "spring.security.oauth2.client.registration.store-service.client-secret=123456"
+        }
+)
 class CartControllerTest {
 
     @Autowired

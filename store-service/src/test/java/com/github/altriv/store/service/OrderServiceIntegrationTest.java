@@ -35,7 +35,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(properties = {
         "spring.autoconfigure.exclude=com.github.altriv.paymentclient.PaymentClientAutoConfiguration",
         "store.cache.itemCachePrefix='item:'",
-        "store.cache.ttl=PT3S"
+        "store.cache.ttl=PT3S",
+        "spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8082/realms/master",
+        "spring.security.oauth2.client.registration.store-service.client-secret=123456"
 })
 @WithMockUser(username = "user")
 class OrderServiceIntegrationTest {

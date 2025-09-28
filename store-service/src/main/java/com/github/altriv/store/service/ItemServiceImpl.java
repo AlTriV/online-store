@@ -1,6 +1,5 @@
 package com.github.altriv.store.service;
 
-import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.ItemEntity;
 import com.github.altriv.store.model.Item;
 import com.github.altriv.store.model.ItemSorting;
@@ -9,6 +8,7 @@ import com.github.altriv.store.model.PageInfo;
 import com.github.altriv.store.repository.ItemRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,9 +23,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
 
+    private static final String ITEM_CACHE_PREFIX = "item:";
+
+    @Value("${store.cache.ttl}")
+    private String ttl = "PT20S";
+
     private final ItemRepository itemRepository;
     private final ReactiveRedisOperations<String, ItemEntity> itemRedisOperations;
-    private final StoreCacheProperties cacheProperties;
 
     @Override
     public Mono<ItemsPage> getItemsPage(@NonNull String search,
@@ -58,11 +62,11 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private Mono<ItemEntity> getItemEntity(long itemId) {
-        String itemCacheKey = cacheProperties.itemCachePrefix() + itemId;
-        Duration ttl = Duration.parse(cacheProperties.ttl());
+        String itemCacheKey = ITEM_CACHE_PREFIX + itemId;
+        Duration ttlDuration = Duration.parse(ttl);
         return itemRedisOperations.opsForValue().get(itemCacheKey)
                 .switchIfEmpty(itemRepository.findById(itemId)
-                        .flatMap(itemEntity -> itemRedisOperations.opsForValue().set(itemCacheKey, itemEntity, ttl).thenReturn(itemEntity)));
+                        .flatMap(itemEntity -> itemRedisOperations.opsForValue().set(itemCacheKey, itemEntity, ttlDuration).thenReturn(itemEntity)));
     }
 
     @Override

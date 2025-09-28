@@ -1,6 +1,5 @@
 package com.github.altriv.store.service;
 
-import com.github.altriv.store.config.StoreCacheProperties;
 import com.github.altriv.store.entity.OrderEntity;
 import com.github.altriv.store.model.Cart;
 import com.github.altriv.store.model.Item;
@@ -17,6 +16,7 @@ import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -37,13 +37,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = OrderServiceImpl.class)
+@TestPropertySource(properties = "store.cache.ttl=PT3S")
 class OrderServiceImplTest {
 
     private final String ORDER_CACHE_PREFIX = "order-user:";
 
     private final String ALL_ORDERS_CACHE_PREFIX = "all-orders-user:";
-
-    private final String cacheTtl = "PT20S";
 
     @Autowired
     private OrderServiceImpl orderService;
@@ -59,9 +58,6 @@ class OrderServiceImplTest {
 
     @MockitoBean
     private ReactiveValueOperations<String, Order> orderValueOperations;
-
-    @MockitoBean
-    private StoreCacheProperties cacheProperties;
 
     @Test
     @WithMockUser(username = "user")
@@ -148,7 +144,6 @@ class OrderServiceImplTest {
 
         @BeforeEach
         void setUp() {
-            when(cacheProperties.ttl()).thenReturn(cacheTtl);
             when(orderRedisOperations.opsForValue()).thenReturn(orderValueOperations);
         }
 
@@ -195,7 +190,7 @@ class OrderServiceImplTest {
             String order2Key = ALL_ORDERS_CACHE_PREFIX + 2;
             Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
 
-            Duration ttl = Duration.parse(cacheTtl);
+            Duration ttl = Duration.parse("PT3S");
 
             when(orderRedisOperations.keys(eq(ALL_ORDERS_CACHE_PREFIX + "*"))).thenReturn(Flux.empty());
             when(orderValueOperations.set(eq(order1Key), eq(expectedOrder), eq(ttl))).thenReturn(saveToCacheFlag);
@@ -226,7 +221,6 @@ class OrderServiceImplTest {
 
         @BeforeEach
         void setUp() {
-            when(cacheProperties.ttl()).thenReturn(cacheTtl);
             when(orderRedisOperations.opsForValue()).thenReturn(orderValueOperations);
         }
 
@@ -258,7 +252,7 @@ class OrderServiceImplTest {
             Item item2 = new Item(2L, "title2", "description2", 2000, 2);
             OrderEntity orderEntity = new OrderEntity(orderId, true, "user", List.of(item, item2));
             Order expectedOrder = new Order(orderEntity.getId(), orderEntity.getItems());
-            Duration ttl = Duration.parse(cacheTtl);
+            Duration ttl = Duration.parse("PT3S");
 
             Mono<Boolean> saveToCacheFlag = spy(Mono.just(true));
 

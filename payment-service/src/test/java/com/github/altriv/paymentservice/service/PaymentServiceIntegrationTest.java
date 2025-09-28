@@ -25,8 +25,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {"spring.sql.init.mode=always"}
+        properties = {
+                "spring.sql.init.mode=always",
+                "spring.security.oauth2.resourceserver.jwt.issuer-uri='http://localhost:8082/realms/master'"
+        }
 )
 @Testcontainers
 class PaymentServiceIntegrationTest {

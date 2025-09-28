@@ -31,6 +31,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BalanceResponse'
+      security:
+        - bearerAuth: []
   /pay:
     post:
       summary: Purchase order
@@ -52,6 +54,8 @@ paths:
                 $ref: '#/components/schemas/PurchaseResponse'
         '400':
           description: Invalid input
+      security:
+        - bearerAuth: [ ]
 components:
   schemas:
     BalanceResponse:
@@ -113,5 +117,10 @@ components:
           example: false
         errorMessage:
           type: string
-          description: Error message if purchase is unsuccess
+          description: Error message if purchase is unsuccessful
           example: "Have no enough cash"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT

@@ -8,4 +8,9 @@ public class PaymentClient extends DefaultApi {
         super();
         getApiClient().setBasePath(url);
     }
+
+    public PaymentClient setJwtToken(String token) {
+        getApiClient().setBearerToken(token);
+        return this;
+    }
 }
