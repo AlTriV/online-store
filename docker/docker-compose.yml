@@ -44,6 +44,7 @@ services:
       KEYCLOAK_URL: "http://keycloak:8082/realms/master"
     depends_on:
       - store_db
+      - keycloak
 
   store-app:
     build:
@@ -62,8 +63,12 @@ services:
       PAYMENT_SERVICE_URL: "http://payment-app:8081/payment"
       REDIS_HOST: redis_cache
       REDIS_PORT: 6379
+      STORE_ADMIN_USER: admin
+      STORE_ADMIN_PASS: admin
       KEYCLOAK_URL: "http://keycloak:8082/realms/master"
       KEYCLOAK_CLIENT_SECRET: ac3BMBFbnrsmPfIB4L7aWHvTrBnumYoj
+    restart: always
     depends_on:
       - store_db
       - payment-app
+      - keycloak

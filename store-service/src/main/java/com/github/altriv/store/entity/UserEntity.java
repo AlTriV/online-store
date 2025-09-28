@@ -9,7 +9,7 @@ import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table(name = "users")
+@Table(name = "store_users")
 @Getter
 @Setter
 @NoArgsConstructor

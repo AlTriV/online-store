@@ -5,11 +5,11 @@ databaseChangeLog:
       comment: "Add table users"
       changes:
         - sqlFile:
-            path: add_table_users.sql
+            path: add_table_store_users.sql
             relativeToChangelogFile: true
       rollback:
         - sqlFile:
-            path: add_table_users_rollback.sql
+            path: add_table_store_users_rollback.sql
             relativeToChangelogFile: true
   - changeSet:
       id: "add_username_to_orders"
