@@ -36,7 +36,7 @@ class CartTest {
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
-    void shouldIncreateCountOfExistingItem(int iterations) {
+    void shouldIncreaseCountOfExistingItem(int iterations) {
         Item item = new Item(1L, "title", "description", 1000, 1);
 
         Cart cart = new Cart(List.of(item));
