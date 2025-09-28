@@ -20,4 +20,5 @@ public class Wallet {
     @Id
     private Long id;
     private Long balance;
+    private String username;
 }

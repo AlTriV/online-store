@@ -11,7 +11,7 @@ public interface PaymentService {
 
     Mono<AddCreditsRs> addCredits(AddCreditsRq addCreditsRs);
 
-    Mono<BalanceResponse> getBalance();
+    Mono<BalanceResponse> getBalance(String username);
 
     Mono<PurchaseResponse> purchase(PurchaseRequest purchaseRq);
 }

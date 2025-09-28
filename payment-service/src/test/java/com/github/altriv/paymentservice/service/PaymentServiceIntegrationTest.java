@@ -61,20 +61,26 @@ class PaymentServiceIntegrationTest {
 
         @Test
         void shouldReturnEmptyIfWalletNotFound() {
-            paymentService.getBalance()
-                    .doOnNext(Assertions::assertNull)
+            paymentService.getBalance("user")
+                    .doOnNext(balanceResponse -> {
+                        assertNotNull(balanceResponse);
+                        assertEquals(0L, balanceResponse.getBalance());
+                        assertEquals("user", balanceResponse.getUsername());
+                    })
                     .block();
         }
 
         @Test
         void shouldReturnBalanceIfWalletFound() {
             long balance = 100L;
-            walletRepository.save(new Wallet(null, balance)).block();
+            String username = "user";
+            walletRepository.save(new Wallet(null, balance, username)).block();
 
-            paymentService.getBalance()
+            paymentService.getBalance(username)
                     .doOnNext(balanceRs -> {
                         assertNotNull(balanceRs);
                         assertEquals(balance, balanceRs.getBalance());
+                        assertEquals(username, balanceRs.getUsername());
                     })
                     .block();
         }
@@ -84,14 +90,15 @@ class PaymentServiceIntegrationTest {
     class PurchaseTest {
 
         @Test
-        void shouldReturnUnsuccessPurchaseIfWalletNotFound() {
+        void shouldReturnUnsuccessfulPurchaseIfWalletNotFound() {
             UUID requestId = UUID.randomUUID();
-            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L, "user");
 
             paymentService.purchase(purchaseRq)
                     .doOnNext(purchaseRs -> {
                         assertNotNull(purchaseRs);
                         assertEquals(requestId, purchaseRs.getRequestId());
+                        assertEquals("user", purchaseRs.getUsername());
                         assertFalse(purchaseRs.getPurchaseResult());
                         assertEquals("Недостаточно средств для оплаты", purchaseRs.getErrorMessage());
                     })
@@ -100,14 +107,16 @@ class PaymentServiceIntegrationTest {
 
         @ParameterizedTest
         @ValueSource(longs = {499L, 100L, 250L})
-        void shouldReturnUnsuccessPurchaseIfHaveNoCredits(long balance) {
+        void shouldReturnUnsuccessfulPurchaseIfHaveNoCredits(long balance) {
             UUID requestId = UUID.randomUUID();
-            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L);
-            walletRepository.save(new Wallet(null, balance)).block();
+            String username = "user";
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 500L, username);
+            walletRepository.save(new Wallet(null, balance, username)).block();
 
             paymentService.purchase(purchaseRq)
                     .doOnNext(purchaseRs -> {
                         assertNotNull(purchaseRs);
+                        assertEquals(username, purchaseRs.getUsername());
                         assertEquals(requestId, purchaseRs.getRequestId());
                         assertFalse(purchaseRs.getPurchaseResult());
                         assertEquals("Недостаточно средств для оплаты", purchaseRs.getErrorMessage());
@@ -120,17 +129,19 @@ class PaymentServiceIntegrationTest {
         void shouldReturnSuccessPurchaseIfHaveEnoughCredits(long balance) {
             long price = 500L;
             UUID requestId = UUID.randomUUID();
-            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, price);
-            walletRepository.save(new Wallet(null, balance)).block();
+            String username = "user";
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, price, username);
+            walletRepository.save(new Wallet(null, balance, username)).block();
 
             paymentService.purchase(purchaseRq)
                     .doOnNext(purchaseRs -> {
                         assertNotNull(purchaseRs);
+                        assertEquals(username, purchaseRs.getUsername());
                         assertEquals(requestId, purchaseRs.getRequestId());
                         assertTrue(purchaseRs.getPurchaseResult());
                         assertNull(purchaseRs.getErrorMessage());
                     })
-                    .flatMap(purchaseRs -> paymentService.getBalance())
+                    .flatMap(purchaseRs -> paymentService.getBalance(username))
                     .doOnNext(balanceRs -> assertEquals(balance - price, balanceRs.getBalance()))
                     .block();
         }
@@ -142,8 +153,8 @@ class PaymentServiceIntegrationTest {
         @Test
         void shouldCreateWalletAndAddCreditsIfWalletNotFound() {
             long balance = 100L;
-            long walletId = 1L;
-            AddCreditsRq addCreditsRq = new AddCreditsRq(walletId, balance);
+            String username = "user";
+            AddCreditsRq addCreditsRq = new AddCreditsRq(balance, username);
 
             paymentService.addCredits(addCreditsRq)
                     .doOnNext(addCreditsRs -> {
@@ -151,7 +162,7 @@ class PaymentServiceIntegrationTest {
                         assertTrue(addCreditsRs.success());
                         assertEquals(balance, addCreditsRs.balance());
                     })
-                    .flatMap(addCreditsRs -> walletRepository.findById(walletId))
+                    .flatMap(addCreditsRs -> walletRepository.findByUsername(username))
                     .doOnNext(Assertions::assertNotNull)
                     .block();
         }
@@ -160,11 +171,11 @@ class PaymentServiceIntegrationTest {
         void shouldAddCreditsIfWalletFound() {
             long balance = 1200L;
             long credits = 100L;
+            String username = "user";
 
-            Wallet savedWallet = walletRepository.save(new Wallet(null, balance)).block();
-            Long walletId = savedWallet.getId();
+            walletRepository.save(new Wallet(null, balance, username)).block();
 
-            AddCreditsRq addCreditsRq = new AddCreditsRq(walletId, credits);
+            AddCreditsRq addCreditsRq = new AddCreditsRq(credits, username);
 
             paymentService.addCredits(addCreditsRq)
                     .doOnNext(addCreditsRs -> {

@@ -23,9 +23,14 @@ public class Purchase {
     private Cart cart;
     private Order paidOrder;
     private String errorMessage;
+    @NonNull
+    private String username;
 
     public PurchaseRequest generatePurchaseRequest() {
-        return new PurchaseRequest().requestId(UUID.randomUUID()).price((long) cart.getTotalPrice());
+        return new PurchaseRequest()
+                .requestId(UUID.randomUUID())
+                .price((long) cart.getTotalPrice())
+                .username(username);
     }
 
     public Purchase processPurchaseResponse(@NonNull PurchaseResponse purchaseRs) {

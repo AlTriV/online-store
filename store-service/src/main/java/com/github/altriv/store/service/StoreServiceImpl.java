@@ -10,10 +10,14 @@ import com.github.altriv.store.model.ItemsPage;
 import com.github.altriv.store.model.Purchase;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
+
+import java.security.Principal;
 
 import static java.util.Optional.ofNullable;
 
@@ -59,11 +63,13 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public Mono<Cart> getCart() {
         return orderService.getNotPaidOrderAsCart()
-                .flatMap(cart -> paymentClient.getBalance()
-                        .onErrorComplete()
-                        .map(BalanceResponse::getBalance)
-                        .map(cart::putBalance)
-                        .defaultIfEmpty(cart)
+                .flatMap(cart -> getCurrentUsername()
+                        .flatMap(username -> paymentClient.getBalance(username)
+                                .onErrorComplete()
+                                .map(BalanceResponse::getBalance)
+                                .map(cart::putBalance)
+                                .defaultIfEmpty(cart)
+                        )
                 );
     }
 
@@ -78,25 +84,33 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Mono<Purchase> buyItemsInCart() {
-        return orderService.getNotPaidOrderAsCart()
-                .map(cart -> Purchase.builder().cart(cart).build())
-                .flatMap(purchase -> paymentClient.purchase(purchase.generatePurchaseRequest())
-                        .onErrorComplete()
-                        .map(purchase::processPurchaseResponse)
-                        .defaultIfEmpty(purchase.addErrorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже"))
-                )
-                .flatMap(purchase -> {
-                    if (purchase.isSuccess()) {
-                        return orderService.saveCartAsPaidOrder().map(purchase::addPaidOrder);
-                    } else {
-                        return Mono.just(purchase);
-                    }
-                });
+        return getCurrentUsername()
+                .flatMap(username -> orderService.getNotPaidOrderAsCart()
+                        .map(cart -> Purchase.builder().cart(cart).username(username).build())
+                        .flatMap(purchase -> paymentClient.purchase(purchase.generatePurchaseRequest())
+                                .onErrorComplete()
+                                .map(purchase::processPurchaseResponse)
+                                .defaultIfEmpty(purchase.addErrorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже"))
+                        )
+                        .flatMap(purchase -> {
+                            if (purchase.isSuccess()) {
+                                return orderService.saveCartAsPaidOrder().map(purchase::addPaidOrder);
+                            } else {
+                                return Mono.just(purchase);
+                            }
+                        })
+                );
     }
 
     private void mergeCountFromCartToItem(@NonNull Cart cart, @NonNull Item item) {
         ofNullable(cart.getItem(item.getId()))
                 .map(Item::getCount)
                 .ifPresent(item::setCount);
+    }
+
+    private Mono<String> getCurrentUsername() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .map(Principal::getName);
     }
 }

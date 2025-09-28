@@ -23,3 +23,15 @@ databaseChangeLog:
         - sqlFile:
             path: alter_orders_add_username_rollback.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: "add_username_to_wallet"
+      author: "avtry"
+      comment: "Add column username to wallet table"
+      changes:
+        - sqlFile:
+            path: alter_wallet_add_username.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: alter_wallet_add_username_rollback.sql
+            relativeToChangelogFile: true

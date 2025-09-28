@@ -1,0 +1,1 @@
+alter table wallet add column username varchar(50) unique;

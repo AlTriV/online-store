@@ -225,6 +225,7 @@ class CartControllerTest {
             Cart cart = new Cart(List.of(item, item2));
             Purchase purchase = Purchase.builder()
                     .cart(cart)
+                    .username("user")
                     .success(false)
                     .errorMessage("Сервис оплаты недоступен. Попробуйте оплатить позже")
                     .build();
@@ -276,6 +277,7 @@ class CartControllerTest {
             Order order = new Order(orderId, List.of(item, item2));
             Purchase purchase = Purchase.builder()
                     .cart(cart)
+                    .username("user")
                     .success(true)
                     .paidOrder(order)
                     .build();

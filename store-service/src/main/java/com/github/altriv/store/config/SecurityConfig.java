@@ -45,7 +45,7 @@ public class SecurityConfig {
     @Bean
     public ServerLogoutSuccessHandler logoutSuccessHandler() {
         RedirectServerLogoutSuccessHandler redirectServerLogoutSuccessHandler = new RedirectServerLogoutSuccessHandler();
-        redirectServerLogoutSuccessHandler.setLogoutSuccessUrl(URI.create("/"));
+        redirectServerLogoutSuccessHandler.setLogoutSuccessUrl(URI.create("/main/items"));
         return redirectServerLogoutSuccessHandler;
     }
 

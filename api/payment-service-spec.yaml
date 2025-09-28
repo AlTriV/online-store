@@ -17,6 +17,13 @@ paths:
       summary: Get current balance
       description: Request balance
       operationId: getBalance
+      parameters:
+        - name: username
+          in: query
+          description: Username
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
@@ -52,16 +59,22 @@ components:
       description: Get balance request
       required:
         - balance
+        - username
       properties:
         balance:
           type: integer
           format: int64
           description: Balance value
           example: 100000
+        username:
+          type: string
+          maxLength: 50
+          description: Username
     PurchaseRequest:
       required:
         - requestId
         - price
+        - username
       type: object
       description: Request to purchase order
       properties:
@@ -74,10 +87,15 @@ components:
           format: int64
           description: Order total price
           example: 1200
+        username:
+          type: string
+          maxLength: 50
+          description: Username
     PurchaseResponse:
       required:
         - requestId
         - purchaseResult
+        - username
       type: object
       description: Purchase response
       properties:
@@ -85,6 +103,10 @@ components:
           type: string
           format: uuid
           description: Purchase order request uuid
+        username:
+          type: string
+          maxLength: 50
+          description: Username
         purchaseResult:
           type: boolean
           description: Is purchase success

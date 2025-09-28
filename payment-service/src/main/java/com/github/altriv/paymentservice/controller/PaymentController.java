@@ -24,9 +24,9 @@ public class PaymentController implements BalanceApi, PayApi {
     private final PaymentService paymentService;
 
     @Override
-    public Mono<ResponseEntity<BalanceResponse>> getBalance(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BalanceResponse>> getBalance(String username, ServerWebExchange exchange) {
         log.info("Request to get balance");
-        return paymentService.getBalance()
+        return paymentService.getBalance(username)
                 .defaultIfEmpty(new BalanceResponse().balance(0L))
                 .map(ResponseEntity::ok);
     }

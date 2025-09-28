@@ -1,0 +1,1 @@
+alter table wallet drop column if exists username;

@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -43,6 +44,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = StoreServiceImpl.class)
+@WithMockUser(username = "user")
 class StoreServiceImplTest {
 
     @MockitoBean
@@ -208,7 +210,8 @@ class StoreServiceImplTest {
             Item item = new Item(1L, "title", "description", 1000, 2);
             Item item2 = new Item(2L, "title2", "description2", 2000, 1);
             Cart cart = new Cart(List.of(item, item2));
-            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(UUID.randomUUID()).price((long) cart.getTotalPrice());
+            PurchaseRequest purchaseRequest = new PurchaseRequest()
+                    .requestId(UUID.randomUUID()).price((long) cart.getTotalPrice()).username("user");
             PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
 
             when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
@@ -236,8 +239,10 @@ class StoreServiceImplTest {
             Cart cart = new Cart(List.of(item, item2));
             UUID requestUuid = UUID.randomUUID();
             String errorMessage = "Недостаточно средств";
-            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(requestUuid).price((long) cart.getTotalPrice());
-            PurchaseResponse purchaseResponse = new PurchaseResponse().purchaseResult(false).requestId(requestUuid).errorMessage(errorMessage);
+            PurchaseRequest purchaseRequest = new PurchaseRequest()
+                    .requestId(requestUuid).price((long) cart.getTotalPrice()).username("user");
+            PurchaseResponse purchaseResponse = new PurchaseResponse()
+                    .purchaseResult(false).requestId(requestUuid).errorMessage(errorMessage).username("user");
 
             PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
 
@@ -266,8 +271,10 @@ class StoreServiceImplTest {
             Cart cart = new Cart(List.of(item, item2));
             Order paidOrder = new Order(1L, List.of(item, item2));
             UUID requestUuid = UUID.randomUUID();
-            PurchaseRequest purchaseRequest = new PurchaseRequest().requestId(requestUuid).price((long) cart.getTotalPrice());
-            PurchaseResponse purchaseResponse = new PurchaseResponse().purchaseResult(true).requestId(requestUuid);
+            PurchaseRequest purchaseRequest = new PurchaseRequest()
+                    .requestId(requestUuid).price((long) cart.getTotalPrice()).username("user");
+            PurchaseResponse purchaseResponse = new PurchaseResponse()
+                    .purchaseResult(true).requestId(requestUuid).username("user");
 
             PurchaseRequestMatcher purchaseRequestMatcher = PurchaseRequestMatcher.matcherFor(purchaseRequest);
 
@@ -291,7 +298,7 @@ class StoreServiceImplTest {
     }
 
     @Nested
-    class GetCartTets {
+    class GetCartTest {
 
         @Test
         void shouldReturnCartWithBalance() {
@@ -300,7 +307,7 @@ class StoreServiceImplTest {
             Cart cart = new Cart(List.of(item, item2));
 
             when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
-            when(paymentClient.getBalance()).thenReturn(Mono.error(new RuntimeException("Payment service down")));
+            when(paymentClient.getBalance("user")).thenReturn(Mono.error(new RuntimeException("Payment service down")));
 
             storeService.getCart()
                     .doOnNext(resultCart -> {
@@ -313,7 +320,7 @@ class StoreServiceImplTest {
                     })
                     .block();
             verify(orderService, times(1)).getNotPaidOrderAsCart();
-            verify(paymentClient, times(1)).getBalance();
+            verify(paymentClient, times(1)).getBalance("user");
         }
 
         @Test
@@ -324,7 +331,7 @@ class StoreServiceImplTest {
             BalanceResponse balanceResponse = new BalanceResponse().balance(12345L);
 
             when(orderService.getNotPaidOrderAsCart()).thenReturn(Mono.just(cart));
-            when(paymentClient.getBalance()).thenReturn(Mono.just(balanceResponse));
+            when(paymentClient.getBalance("user")).thenReturn(Mono.just(balanceResponse));
 
             storeService.getCart()
                     .doOnNext(resultCart -> {
@@ -336,7 +343,7 @@ class StoreServiceImplTest {
                     })
                     .block();
             verify(orderService, times(1)).getNotPaidOrderAsCart();
-            verify(paymentClient, times(1)).getBalance();
+            verify(paymentClient, times(1)).getBalance("user");
         }
     }
 

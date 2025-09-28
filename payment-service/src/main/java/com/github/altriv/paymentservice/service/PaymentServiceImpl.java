@@ -22,8 +22,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public Mono<AddCreditsRs> addCredits(AddCreditsRq addCreditsRq) {
-        return walletRepository.findById(addCreditsRq.walletId())
-                .defaultIfEmpty(new Wallet(null, 0L))
+        return walletRepository.findByUsername(addCreditsRq.username())
+                .defaultIfEmpty(new Wallet(null, 0L, addCreditsRq.username()))
                 .map(wallet -> {
                     long newBalance = wallet.getBalance() + addCreditsRq.creditsAmount();
                     wallet.setBalance(newBalance);
@@ -35,32 +35,31 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Mono<BalanceResponse> getBalance() {
-        return findWallet()
-                .map(wallet -> new BalanceResponse().balance(wallet.getBalance()));
+    public Mono<BalanceResponse> getBalance(String username) {
+        return findWalletForUser(username)
+                .map(wallet -> new BalanceResponse().balance(wallet.getBalance()).username(wallet.getUsername()));
     }
 
     @Override
-    public Mono<PurchaseResponse> purchase(PurchaseRequest purchaseRq) {
-        return findWallet()
+    public Mono<PurchaseResponse> purchase(PurchaseRequest purchaseRequest) {
+        return findWalletForUser(purchaseRequest.getUsername())
                 .filter(Objects::nonNull)
-                .filter(wallet -> wallet.getBalance() >= purchaseRq.getPrice())
+                .filter(wallet -> wallet.getBalance() >= purchaseRequest.getPrice())
                 .flatMap(wallet -> {
-                    wallet.setBalance(wallet.getBalance() - purchaseRq.getPrice());
+                    wallet.setBalance(wallet.getBalance() - purchaseRequest.getPrice());
                     return walletRepository.save(wallet);
                 })
-                .map(wallet -> new PurchaseResponse().purchaseResult(true).requestId(purchaseRq.getRequestId()))
+                .map(wallet -> new PurchaseResponse().purchaseResult(true).requestId(purchaseRequest.getRequestId()).username(wallet.getUsername()))
                 .defaultIfEmpty(new PurchaseResponse()
                         .purchaseResult(false)
-                        .requestId(purchaseRq.getRequestId())
+                        .requestId(purchaseRequest.getRequestId())
+                        .username(purchaseRequest.getUsername())
                         .errorMessage("Недостаточно средств для оплаты")
                 );
     }
 
-    private Mono<Wallet> findWallet() {
-        return walletRepository.findAll()
-                .collectList()
-                .filter(list -> !list.isEmpty())
-                .map(List::getFirst);
+    private Mono<Wallet> findWalletForUser(String username) {
+        return walletRepository.findByUsername(username)
+                .defaultIfEmpty(new Wallet(null, 0L, username));
     }
 }

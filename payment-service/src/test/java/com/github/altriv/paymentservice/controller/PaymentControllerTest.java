@@ -38,32 +38,35 @@ class PaymentControllerTest {
         @Test
         void shouldReturnBalance() {
             long balanceAmount = 1234L;
-            String url = "/balance";
+            String username = "user";
+            String urlTemplate = "/balance?username=%s";
+            String url = String.format(urlTemplate, username);
             BalanceResponse expectedBalance = new BalanceResponse().balance(balanceAmount);
 
 
-            when(paymentService.getBalance()).thenReturn(Mono.just(expectedBalance));
+            when(paymentService.getBalance(username)).thenReturn(Mono.just(expectedBalance));
 
             webTestClient.get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
-            verify(paymentService, times(1)).getBalance();
+            verify(paymentService, times(1)).getBalance(username);
         }
 
         @Test
         void shouldReturnEmptyBalanceIfNotFound() {
-            String url = "/balance";
+            String username = "user";
+            String urlTemplate = "/balance?username=%s";
+            String url = String.format(urlTemplate, username);
             BalanceResponse expectedBalance = new BalanceResponse().balance(0L);
 
-
-            when(paymentService.getBalance()).thenReturn(Mono.empty());
+            when(paymentService.getBalance(username)).thenReturn(Mono.empty());
 
             webTestClient.get().uri(url)
                     .exchange()
                     .expectStatus().isOk()
                     .expectBody(BalanceResponse.class).isEqualTo(expectedBalance);
-            verify(paymentService, times(1)).getBalance();
+            verify(paymentService, times(1)).getBalance(username);
         }
     }
 
@@ -77,8 +80,8 @@ class PaymentControllerTest {
         })
         void shouldCompletePurchase(boolean purchaseResult, String errorMessage) {
             UUID requestId = UUID.randomUUID();
-            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 100L);
-            PurchaseResponse expectedPurchase = new PurchaseResponse(requestId, purchaseResult).errorMessage(errorMessage);
+            PurchaseRequest purchaseRq = new PurchaseRequest(requestId, 100L, "user");
+            PurchaseResponse expectedPurchase = new PurchaseResponse(requestId, "user", purchaseResult).errorMessage(errorMessage);
             when(paymentService.purchase(purchaseRq)).thenReturn(Mono.just(expectedPurchase));
 
             String url = "/pay";
@@ -117,7 +120,7 @@ class PaymentControllerTest {
         @Test
         void shouldAddCredits() {
             long startBalance = 200L;
-            AddCreditsRq addCreditsRq = new AddCreditsRq(1L, 100);
+            AddCreditsRq addCreditsRq = new AddCreditsRq(100L, "user");
             AddCreditsRs addCreditsRs = new AddCreditsRs(true, startBalance + 100);
             when(paymentService.addCredits(addCreditsRq)).thenReturn(Mono.just(addCreditsRs));
 
